@@ -13,6 +13,7 @@ import { empreendimentos, fmt } from '../../data/fallback';
 import './style.css';
 
 import { getEmpreendimentos } from '../../services/empreendimentos';
+import { getUnidadesImobiliarias } from '../../services/unidades';
 
 const TIPOS = ['Todos', 'Casa', 'Apartamento', 'Lote'];
 
@@ -21,12 +22,17 @@ function Empreendimentos() {
   const [tipoFiltro, setTipoFiltro] = useState('Todos');
   const [selected, setSelected] = useState(null);
 
-  //const [empreendimentos, setEmpreendimentos] = useState([]);
+  const [empreendimentosData, setEmpreendimentosData] = useState([]);
   
   useEffect(() => {
+    getUnidadesImobiliarias().then((data) => {
+      console.log('Unidades carregadas:', data);
+    }).catch((error) => {
+      console.error('Erro ao carregar unidades:', error);
+    });
    getEmpreendimentos().then((data) => {
       console.log('Empreendimentos carregados:', data);
-      //setEmpreendimentos(data);
+      setEmpreendimentosData(data);
     }).catch((error) => {
       console.error('Erro ao carregar empreendimentos:', error);
     });
