@@ -1,0 +1,47 @@
+.stat-card__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--color-text-sm);
+}
+
+.stat-card__value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-top: 8px;
+}
+
+.stat-card__value--compact {
+  font-size: 18px;
+}
+
+.stat-card__value--accent {
+  color: var(--color-accent);
+}
+
+.stat-card__value--gold {
+  color: var(--color-gold);
+}
+
+.stat-card__value--green {
+  color: var(--color-green);
+}
+
+.stat-card__value--red {
+  color: var(--color-red);
+}
+
+.stat-card__value--blue {
+  color: var(--color-blue);
+}
+
+.stat-card__value--purple {
+  color: var(--color-purple);
+}
+
+.stat-card__description {
+  font-size: 11px;
+  color: var(--color-text-sm);
+  margin-top: 5px;
+}

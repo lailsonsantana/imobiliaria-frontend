@@ -1,0 +1,11 @@
+.table-row:hover {
+  background: var(--color-row);
+}
+ 
+.table-row--highlighted {
+  background: var(--color-accent-bg);
+}
+ 
+.table-row--highlighted:hover {
+  background: var(--color-row);
+}

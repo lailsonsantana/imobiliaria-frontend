@@ -1,0 +1,45 @@
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.status-badge--gold {
+  color: var(--color-gold);
+  background: var(--color-gold-bg);
+  border-color: var(--color-gold);
+}
+
+.status-badge--green {
+  color: var(--color-green);
+  background: var(--color-green-bg);
+  border-color: var(--color-green);
+}
+
+.status-badge--red {
+  color: var(--color-red);
+  background: var(--color-red-bg);
+  border-color: var(--color-red);
+}
+
+.status-badge--blue {
+  color: var(--color-blue);
+  background: var(--color-blue-bg);
+  border-color: var(--color-blue);
+}
+
+.status-badge--purple {
+  color: var(--color-purple);
+  background: var(--color-purple-bg);
+  border-color: var(--color-purple);
+}
+
+.status-badge--neutral {
+  color: var(--color-text-md);
+  background: var(--color-row);
+  border-color: var(--color-border);
+}

@@ -1,0 +1,32 @@
+.ranking-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ranking-row__position {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-accent);
+  width: 20px;
+}
+
+.ranking-row__info {
+  flex: 1;
+}
+
+.ranking-row__name {
+  font-size: 12px;
+  color: var(--color-text);
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+
+.ranking-row__value {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--color-accent);
+  font-weight: 700;
+}

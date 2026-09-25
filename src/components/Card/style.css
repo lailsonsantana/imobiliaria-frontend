@@ -1,0 +1,35 @@
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.card--no-padding {
+  padding: 0;
+  overflow: hidden;
+}
+
+.card--accent-gold {
+  border-top: 3px solid var(--color-gold);
+}
+
+.card--accent-green {
+  border-top: 3px solid var(--color-green);
+}
+
+.card--accent-red {
+  border-top: 3px solid var(--color-red);
+}
+
+.card--accent-blue {
+  border-top: 3px solid var(--color-blue);
+}
+
+.card--accent-purple {
+  border-top: 3px solid var(--color-purple);
+}
+
+.card--accent-accent {
+  border-top: 3px solid var(--color-accent);
+}

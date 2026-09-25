@@ -1,0 +1,16 @@
+.table-header-cell {
+  text-align: left;
+  padding: 9px 14px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--color-text-sm);
+  border-bottom: 1px solid var(--color-border-md);
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--color-row);
+}
+ 
+.table-header-cell--right {
+  text-align: right;
+}
