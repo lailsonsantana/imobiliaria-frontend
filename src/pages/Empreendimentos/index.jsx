@@ -32,6 +32,8 @@ function Empreendimentos() {
     });
   }, [])
 
+  
+
   const stats = useMemo(() => {
     const all = empreendimentos.flatMap((e) => e.unidade_imobiliaria);
     return {
