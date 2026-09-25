@@ -1,17 +1,2 @@
-import PageHeader from "../../components/PageHeader";
-import SideBar from "../../components/SideBar";
-
-
-function Home(){
-    return(
-        <div>
-            <PageHeader title={'Dashboard'} subtitle={'Imobiliária'} />
-                
-            <SideBar />
-
-
-        </div>
-    )
-}
-
-export default Home;
+/* Re-export from pages/ — mantém compatibilidade com importações antigas */
+export { default } from '../../pages/Home';

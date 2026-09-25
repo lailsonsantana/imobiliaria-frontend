@@ -1,0 +1,74 @@
+.vend-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.vend-nome-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  font-family: var(--font-base);
+}
+
+.vend-nome-btn:hover { text-decoration: underline; }
+
+.vend-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vend-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+.vend-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-gold-bg);
+  color: var(--color-gold);
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vend-detail-nome {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.vend-detail-sub {
+  font-size: 11px;
+  color: var(--color-text-sm);
+  margin-top: 2px;
+}
+
+.vend-close-btn {
+  align-self: flex-start;
+  background: var(--color-row);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-md);
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-base);
+  transition: background 0.12s;
+}
+
+.vend-close-btn:hover { background: var(--color-border); }

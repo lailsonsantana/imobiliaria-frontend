@@ -1,0 +1,62 @@
+.rel-card {
+  margin-bottom: 20px;
+}
+
+.rel-tipo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.rel-tipo-card {
+  background: var(--color-row);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rel-tipo-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--color-text-sm);
+  font-weight: 700;
+}
+
+.rel-tipo-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-accent);
+  line-height: 1;
+  margin-top: 4px;
+}
+
+.rel-tipo-sub {
+  font-size: 11px;
+  color: var(--color-text-sm);
+}
+
+.rel-tipo-bar {
+  height: 5px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.rel-tipo-bar-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.rel-tipo-pct {
+  font-size: 11px;
+  color: var(--color-text-md);
+  font-weight: 500;
+}

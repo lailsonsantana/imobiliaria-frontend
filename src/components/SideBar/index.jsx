@@ -28,10 +28,14 @@ const NAV_ITEMS = [
  * Menu lateral fixo, presente em todas as páginas.
  * A navegação usa o React Router (NavLink), que já cuida de marcar
  * o item ativo sozinho — por isso o Sidebar não recebe props.
+ *
+ * Props:
+ * - className: classes adicionais (ex: "sidebar--open" em mobile)
+ * - onNavClick: callback chamado ao clicar num link (fechar sidebar no mobile)
  */
-function Sidebar() {
+function Sidebar({ className = '', onNavClick }) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${className}`.trim()}>
       <div className="sidebar__brand">
         <div className="sidebar__brand-name">Prosperiam</div>
         <div className="sidebar__brand-sub">Empreendimentos</div>
@@ -46,6 +50,7 @@ function Sidebar() {
             className={({ isActive }) =>
               `sidebar__link ${isActive ? "sidebar__link--active" : ""}`
             }
+            onClick={onNavClick}
           >
             <Icon size={15} className="sidebar__link-icon" />
             <span>{label}</span>

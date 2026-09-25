@@ -1,0 +1,60 @@
+.stats-grid--dashboard {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.dashboard__emp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  gap: 12px;
+}
+
+.dashboard__emp-row:last-of-type { border-bottom: none; }
+
+.dashboard__emp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard__emp-nome {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.dashboard__emp-local {
+  font-size: 11px;
+  color: var(--color-text-sm);
+}
+
+.dashboard__emp-pct {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--color-green);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dashboard__link-row {
+  margin-top: 14px;
+  text-align: right;
+}
+
+.dashboard__link {
+  font-size: 12px;
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.dashboard__link:hover { text-decoration: underline; }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 0;
+}
