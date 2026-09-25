@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import PageHeader      from '../../components/PageHeader';
 import StatCard        from '../../components/StatCard';
 import Card            from '../../components/Card';
@@ -8,7 +8,8 @@ import StatusBadge     from '../../components/StatusBadge';
 import TableRow        from '../../components/TableRow';
 import TableCell       from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
-import { clientes } from '../../data/fallback';
+import { getClientes } from '../../services/client';
+// import { clientes } from '../../data/fallback';
 import './style.css';
 
 const ESTADO_CIVIL_OPTS = ['Todos', 'Casado', 'Solteiro', 'Divorciado', 'Viuvo'];
@@ -17,14 +18,23 @@ function Clientes() {
   const [search, setSearch]       = useState('');
   const [ecFiltro, setEcFiltro]   = useState('Todos');
   const [selected, setSelected]   = useState(null);
+  const [clientes, setClientes] = useState([]);
+
+  useEffect(() => {
+    getClientes().then((body) => {
+      setClientes(body.data);
+    }).catch((error) => {
+      console.error('[Clientes] Erro ao buscar clientes:', error);
+    });
+  }, []);
 
   const stats = useMemo(() => {
     const ec = {};
     clientes.forEach((c) => {
       ec[c.estado_civil] = (ec[c.estado_civil] || 0) + 1;
-    });
+      });
     return { total: clientes.length, ec };
-  }, []);
+  }, [clientes]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -36,7 +46,7 @@ function Clientes() {
       const matchEc = ecFiltro === 'Todos' || c.estado_civil === ecFiltro;
       return matchQ && matchEc;
     });
-  }, [search, ecFiltro]);
+  }, [search, ecFiltro, clientes]);
 
   const c = selected;
 
