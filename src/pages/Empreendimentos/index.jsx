@@ -1,23 +1,36 @@
-import { useState, useMemo } from 'react';
-import PageHeader      from '../../components/PageHeader';
-import StatCard        from '../../components/StatCard';
-import Card            from '../../components/Card';
-import SectionTitle    from '../../components/SectionTitle';
-import SearchBox       from '../../components/SearchBox';
-import FilterButton    from '../../components/FilterButton';
-import StatusBadge     from '../../components/StatusBadge';
-import TableRow        from '../../components/TableRow';
-import TableCell       from '../../components/TableCell';
+import { useState, useMemo, useEffect } from 'react';
+import PageHeader from '../../components/PageHeader';
+import StatCard from '../../components/StatCard';
+import Card from '../../components/Card';
+import SectionTitle from '../../components/SectionTitle';
+import SearchBox from '../../components/SearchBox';
+import FilterButton from '../../components/FilterButton';
+import StatusBadge from '../../components/StatusBadge';
+import TableRow from '../../components/TableRow';
+import TableCell from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
 import { empreendimentos, fmt } from '../../data/fallback';
 import './style.css';
 
+import { getEmpreendimentos } from '../../services/empreendimentos';
+
 const TIPOS = ['Todos', 'Casa', 'Apartamento', 'Lote'];
 
 function Empreendimentos() {
-  const [search, setSearch]  = useState('');
+  const [search, setSearch] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('Todos');
   const [selected, setSelected] = useState(null);
+
+  //const [empreendimentos, setEmpreendimentos] = useState([]);
+  
+  useEffect(() => {
+   getEmpreendimentos().then((data) => {
+      console.log('Empreendimentos carregados:', data);
+      //setEmpreendimentos(data);
+    }).catch((error) => {
+      console.error('Erro ao carregar empreendimentos:', error);
+    });
+  }, [])
 
   const stats = useMemo(() => {
     const all = empreendimentos.flatMap((e) => e.unidade_imobiliaria);
@@ -48,10 +61,10 @@ function Empreendimentos() {
       <PageHeader title="Empreendimentos" subtitle="Cadastro e status dos empreendimentos" />
 
       <div className="stats-grid">
-        <StatCard label="Empreendimentos"  value={stats.total}    color="accent" />
-        <StatCard label="Total Unidades"   value={stats.unidades} color="blue" />
-        <StatCard label="Vendidas"         value={stats.vendidas} color="green" />
-        <StatCard label="Em Aberto"        value={stats.abertas}  color="gold" />
+        <StatCard label="Empreendimentos" value={stats.total} color="accent" />
+        <StatCard label="Total Unidades" value={stats.unidades} color="blue" />
+        <StatCard label="Vendidas" value={stats.vendidas} color="green" />
+        <StatCard label="Em Aberto" value={stats.abertas} color="gold" />
       </div>
 
       <div className="toolbar">
@@ -119,7 +132,7 @@ function Empreendimentos() {
             </p>
 
             <div className="emp-unit-stats">
-              {['Vendido','Reservado','Em aberto','Distratado'].map((s) => {
+              {['Vendido', 'Reservado', 'Em aberto', 'Distratado'].map((s) => {
                 const cnt = emp.unidade_imobiliaria.filter((u) => u.status === s).length;
                 return (
                   <div key={s} className="emp-unit-stat">
