@@ -154,6 +154,16 @@ export const CLIENTE_FIELDS = [
 ];
 
 /**
+ * Cliente da API → initialValues do formulário (campos específicos do domínio).
+ * Datas, arrays vazios e null em campos ficam no FormButton.
+ */
+export const clienteToFormValues = (cliente) => {
+  if (!cliente) return undefined;
+  const { _id, __v, createdAt, updatedAt, ...formFields } = cliente;
+  return formFields;
+};
+
+/**
  * Normaliza os dados do formulário para o formato exigido pelo backend
  */
 const sanitizeClientData = (data) => {

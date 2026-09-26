@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect, useId, createElement, isValidElement } from "react";
 import { Plus, X, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import "./style.css";
 
@@ -48,6 +48,9 @@ import "./style.css";
  * - style: Estilos inline para o botão principal
  * - disabled: Desabilita o botão principal
  * - children: Conteúdo alternativo para o interior do botão (se não passar name/label)
+ * - initialValues: Objeto opcional pré-preenchido ao abrir (edição). Datas DD/MM/YYYY
+ *   e arrays vazios são normalizados automaticamente conforme os entries.
+ * - iconOnly: Se true, botão compacto só com ícone (útil em tabelas)
  */
 function FormButton({
   name,
@@ -70,6 +73,8 @@ function FormButton({
   overlayClassName = "",
   style,
   disabled = false,
+  initialValues,
+  iconOnly = false,
   ...props
 }) {
   const formEntries = fields || entries;
@@ -97,17 +102,85 @@ function FormButton({
     return item;
   };
 
+  const cloneFieldValue = (value) => {
+    if (Array.isArray(value)) {
+      return JSON.parse(JSON.stringify(value));
+    }
+    if (typeof value === "object" && value !== null) {
+      return { ...value };
+    }
+    return value;
+  };
+
+  /** DD/MM/YYYY → YYYY-MM-DD para inputs type="date" */
+  const parseDateForInput = (value) => {
+    if (value === null || value === undefined || value === "") return "";
+    if (typeof value !== "string") return value;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+      const [d, m, y] = value.split("/");
+      return `${y}-${m}-${d}`;
+    }
+    return value;
+  };
+
+  const emptyScalarForField = (fieldDef) => {
+    if (fieldDef?.type === "checkbox") return false;
+    return "";
+  };
+
+  const normalizeValueForEntry = (entry, value) => {
+    if (entry.type === "date") {
+      return parseDateForInput(value);
+    }
+
+    if (entry.type === "array" || entry.type === "list") {
+      const subDefs = entry.fields || entry.subFields || entry.items || [];
+      const minCount = entry.minItems !== undefined ? entry.minItems : 0;
+      const list = Array.isArray(value) ? value : [];
+      const normalized = list.map((item) => {
+        const row =
+          item && typeof item === "object" ? { ...item } : {};
+        subDefs.forEach((sf) => {
+          const raw = row[sf.name];
+          row[sf.name] =
+            raw === null || raw === undefined
+              ? emptyScalarForField(sf)
+              : normalizeValueForEntry(sf, raw);
+        });
+        return row;
+      });
+      while (normalized.length < minCount) {
+        normalized.push(createEmptyArrayItem(subDefs));
+      }
+      return normalized;
+    }
+
+    if (entry.type === "checkbox") {
+      return Boolean(value);
+    }
+
+    if (value === null || value === undefined) {
+      return emptyScalarForField(entry);
+    }
+
+    return value;
+  };
+
+  const applyEntryNormalization = (data) => {
+    formEntries.forEach((entry) => {
+      if (!entry.name || !(entry.name in data)) return;
+      data[entry.name] = normalizeValueForEntry(entry, data[entry.name]);
+    });
+  };
+
   // Inicializa o estado do formulário com os valores padrão dos campos
-  const initializeFormData = () => {
+  const initializeFormData = (valuesOverride) => {
     const initial = {};
     formEntries.forEach((entry) => {
       if (entry.name) {
         if (entry.defaultValue !== undefined) {
-          initial[entry.name] = Array.isArray(entry.defaultValue)
-            ? JSON.parse(JSON.stringify(entry.defaultValue))
-            : typeof entry.defaultValue === "object" && entry.defaultValue !== null
-            ? { ...entry.defaultValue }
-            : entry.defaultValue;
+          initial[entry.name] = cloneFieldValue(entry.defaultValue);
         } else if (entry.type === "checkbox") {
           initial[entry.name] = false;
         } else if (entry.type === "array" || entry.type === "list") {
@@ -119,6 +192,20 @@ function FormButton({
         }
       }
     });
+
+    const source =
+      valuesOverride !== undefined ? valuesOverride : initialValues;
+    if (source && typeof source === "object") {
+      Object.keys(source).forEach((key) => {
+        const val = source[key];
+        if (val !== undefined && val !== null) {
+          initial[key] = cloneFieldValue(val);
+        }
+      });
+    }
+
+    applyEntryNormalization(initial);
+
     setFormData(initial);
     setErrorMessage("");
   };
@@ -243,11 +330,13 @@ function FormButton({
   const renderIcon = () => {
     if (icon === null) return null;
     if (icon) {
-      return typeof icon === "function" ? (
-        icon({ size: 16, className: "form-btn__icon" })
-      ) : (
-        <span className="form-btn__icon-wrapper">{icon}</span>
-      );
+      if (isValidElement(icon)) {
+        return <span className="form-btn__icon-wrapper">{icon}</span>;
+      }
+      if (typeof icon === "function" || (typeof icon === "object" && icon !== null)) {
+        return createElement(icon, { size: 16, className: "form-btn__icon" });
+      }
+      return <span className="form-btn__icon-wrapper">{icon}</span>;
     }
     return <Plus size={16} className="form-btn__icon" />;
   };
@@ -256,7 +345,7 @@ function FormButton({
     <>
       <button
         type="button"
-        className={`form-btn form-btn--${variant} ${className}`.trim()}
+        className={`form-btn form-btn--${variant} ${iconOnly ? "form-btn--icon-only" : ""} ${className}`.trim()}
         style={style}
         onClick={handleOpen}
         disabled={disabled}
