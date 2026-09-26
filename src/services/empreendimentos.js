@@ -43,6 +43,16 @@ export const EMPREENDIMENTOS_FIELDS = [
   },
 ];
 
+export const empreendimentoToFormValues = (empreendimento) => {
+  return {
+    nome: empreendimento.nome,
+    bairro: empreendimento.bairro,
+    cidade: empreendimento.cidade,
+    estado: empreendimento.estado,
+    cep: empreendimento.cep,
+  };
+};
+
 export const getEmpreendimentos = async () => {
   try {
     const response = await api.get("/empreendimentos");
@@ -75,7 +85,7 @@ export const createEmpreendimento = async (empreendimentoData) => {
 
 export const updateEmpreendimento = async (id, empreendimentoData) => {
   try {
-    const response = await api.put(
+    const response = await api.patch(
       `/empreendimentos/${id}`,
       empreendimentoData,
     );

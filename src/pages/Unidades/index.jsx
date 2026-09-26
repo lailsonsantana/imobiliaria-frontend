@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import CallbackButton from '../../components/CallbackButton';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import Card from '../../components/Card';
@@ -9,10 +10,11 @@ import TableRow from '../../components/TableRow';
 import TableCell from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
 import { fmt } from '../../data/fallback';
-import { getUnidadesImobiliarias, createUnidadesImobiliaris, buildUnidadesFields } from '../../services/unidades';
+import { getUnidadesImobiliarias, createUnidadesImobiliaris, buildUnidadesFields, UNIDADES_FIELDS, updateUnidadesImobiliaris, unidadesToFormValues, deleteUnidadesImobiliaris } from '../../services/unidades';
 import { getEmpreendimentos } from '../../services/empreendimentos';
 import './style.css';
 import FormButton from '../../components/FormButton';
+import { Pencil, Trash } from 'lucide-react';
 const STATUS_OPTS = ['Todos', 'Vendido', 'Reservado', 'Em aberto', 'Distratado'];
 const TIPO_OPTS = ['Todos', 'casa', 'Apartamento', 'Lote'];
 
@@ -40,6 +42,11 @@ function Unidades() {
   const unidadesFields = useMemo(
     () => buildUnidadesFields(empreendimentos),
     [empreendimentos]
+  );
+
+  const unidadeFieldsSemEmpreendimento = useMemo(
+    () => buildUnidadesFields([], { omitFields: ['empreendimento_id'] }),
+    []
   );
 
 
@@ -135,6 +142,38 @@ function Unidades() {
                   <TableCell mono align="right">{u.area}</TableCell>
                   <TableCell mono align="right">{fmt.currency(u.valor)}</TableCell>
                   <TableCell><StatusBadge status={u.status} /></TableCell>
+                  <TableCell>
+                    <FormButton
+                      entries={unidadeFieldsSemEmpreendimento}
+                      icon={Pencil}
+                      iconOnly
+                      variant="outline"
+                      className="cli-edit-btn"
+                      aria-label={`Editar unidade ${u.nome}`}
+                      modalTitle="Editar Unidade"
+                      modalSubtitle={u.nome}
+                      submitText="Atualizar"
+                      initialValues={unidadesToFormValues(u)}
+                      serviceFn={(formData) => updateUnidadesImobiliaris(u._id, formData)}
+                      onSuccess={() => carregarUnidades()}
+                    />
+                  </TableCell>
+                  <TableCell>
+                      <CallbackButton
+                        label="Excluir"
+                        icon={Trash}
+                        iconOnly
+                        variant="outline"
+                        className="cli-delete-btn"
+                        aria-label={`Excluir unidade ${u.nome}`}
+                        modalTitle="Excluir Unidade"
+                        modalSubtitle={u.nome}
+                        submitText="Excluir"
+                        serviceFn={deleteUnidadesImobiliaris}
+                        params={u._id}
+                        onSuccess={() => carregarUnidades()}
+                      />
+                    </TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && (
