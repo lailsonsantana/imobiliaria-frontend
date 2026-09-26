@@ -8,12 +8,14 @@ import StatusBadge from '../../components/StatusBadge';
 import TableRow from '../../components/TableRow';
 import TableCell from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
-import { Pencil } from 'lucide-react';
+import { Pencil, Trash } from 'lucide-react';
 import FormButton from '../../components/FormButton';
+import CallbackButton from '../../components/CallbackButton';
 import {
   getClientes,
   createCliente,
   updateCliente,
+  excluirCliente,
   CLIENTE_FIELDS,
   clienteToFormValues,
 } from '../../services/client';
@@ -115,6 +117,7 @@ function Clientes() {
                   <TableHeaderCell>Estado Civil</TableHeaderCell>
                   <TableHeaderCell>Cidade</TableHeaderCell>
                   <TableHeaderCell>Editar</TableHeaderCell>
+                  <TableHeaderCell>Excluir</TableHeaderCell>
                 </tr>
               </thead>
               <tbody>
@@ -149,6 +152,22 @@ function Clientes() {
                         submitText="Atualizar"
                         initialValues={clienteToFormValues(cli)}
                         serviceFn={(formData) => updateCliente(cli._id, formData)}
+                        onSuccess={() => carregarClientes()}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <CallbackButton
+                        label="Excluir"
+                        icon={Trash}
+                        iconOnly
+                        variant="outline"
+                        className="cli-delete-btn"
+                        aria-label={`Excluir cliente ${cli.nome}`}
+                        modalTitle="Excluir Cliente"
+                        modalSubtitle={cli.nome}
+                        submitText="Excluir"
+                        serviceFn={excluirCliente}
+                        params={cli._id}
                         onSuccess={() => carregarClientes()}
                       />
                     </TableCell>
