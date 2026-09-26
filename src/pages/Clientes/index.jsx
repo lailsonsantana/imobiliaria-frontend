@@ -18,7 +18,9 @@ import {
   excluirCliente,
   CLIENTE_FIELDS,
   clienteToFormValues,
+  getClientesStats,
 } from '../../services/client';
+import { getVendas } from '../../services/vendas';
 // import { clientes } from '../../data/fallback';
 import './style.css';
 
@@ -29,28 +31,36 @@ function Clientes() {
   const [ecFiltro, setEcFiltro] = useState('Todos');
   const [selected, setSelected] = useState(null);
   const [clientes, setClientes] = useState([]);
+  const [vendas, setVendas] = useState([]);
 
   const carregarClientes = () => {
     getClientes()
       .then((body) => {
-        setClientes(body?.data || []);
+        setClientes(Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : []);
       })
       .catch((error) => {
         console.error('[Clientes] Erro ao buscar clientes:', error);
       });
   };
 
+  const carregarVendas = () => {
+    getVendas()
+      .then((body) => {
+        setVendas(Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : []);
+      })
+      .catch((error) => {
+        console.error('[Clientes] Erro ao buscar vendas:', error);
+      });
+  };
+
   useEffect(() => {
     carregarClientes();
+    carregarVendas();
   }, []);
 
   const stats = useMemo(() => {
-    const ec = {};
-    clientes.forEach((c) => {
-      ec[c.estado_civil] = (ec[c.estado_civil] || 0) + 1;
-    });
-    return { total: clientes.length, ec };
-  }, [clientes]);
+    return getClientesStats(clientes, vendas);
+  }, [clientes, vendas]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -72,11 +82,45 @@ function Clientes() {
       <PageHeader title="Clientes" subtitle="Cadastro de compradores" />
 
       <div className="stats-grid">
-        <StatCard label="Total Clientes" value={stats.total} color="accent" />
-        <StatCard label="Casados" value={stats.ec['Casado'] || 0} color="blue" />
-        <StatCard label="Solteiros" value={stats.ec['Solteiro'] || 0} color="green" />
-        <StatCard label="Divorciados" value={stats.ec['Divorciado'] || 0} color="red" />
-        <StatCard label="Viúvos" value={stats.ec['Viuvo'] || 0} color="purple" />
+        <StatCard
+          label="Total Clientes"
+          value={stats.total}
+          color="accent"
+          description="Cadastrados no sistema"
+        />
+
+        <Card accent="gold" className="stat-card">
+          <div className="stat-card__label">Top 3 Clientes em Vendas</div>
+          {stats.topClientes && stats.topClientes.length > 0 ? (
+            <div className="cli-top-list">
+              {stats.topClientes.map((item, idx) => (
+                <div key={item.cpf || item.nome || idx} className="cli-top-item">
+                  <span className="cli-top-badge">#{idx + 1}</span>
+                  <span className="cli-top-name" title={item.nome}>
+                    {item.nome}
+                  </span>
+                  <span className="cli-top-count">
+                    {item.totalVendas} {item.totalVendas === 1 ? 'venda' : 'vendas'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="cli-top-empty">Nenhuma venda associada</div>
+          )}
+        </Card>
+
+        <StatCard
+          label="Cidade com Mais Clientes"
+          value={stats.topCidade?.cidade || '—'}
+          description={
+            stats.topCidade?.total
+              ? `${stats.topCidade.total} cliente${stats.topCidade.total > 1 ? 's' : ''} (${stats.topCidade.percentual}% do total)`
+              : 'Sem endereços informados'
+          }
+          color="green"
+          compact
+        />
       </div>
 
       <div className="toolbar">
