@@ -9,42 +9,44 @@ import StatusBadge from '../../components/StatusBadge';
 import TableRow from '../../components/TableRow';
 import TableCell from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
+import FormButton from '../../components/FormButton';
 import { empreendimentos, fmt } from '../../data/fallback';
 import './style.css';
 
 import { getEmpreendimentos } from '../../services/empreendimentos';
+import { getUnidadesImobiliarias } from '../../services/unidades';
 
-const TIPOS = ['Todos', 'Casa', 'Apartamento', 'Lote'];
+const TIPOS = ['Todos', 'casa', 'Apartamento', 'Lote'];
 
 function Empreendimentos() {
   const [search, setSearch] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState('Todos');
   const [selected, setSelected] = useState(null);
 
-  //const [empreendimentos, setEmpreendimentos] = useState([]);
+  const [empreendimentosData, setEmpreendimentosData] = useState([]);
   
   useEffect(() => {
    getEmpreendimentos().then((data) => {
       console.log('Empreendimentos carregados:', data);
-      //setEmpreendimentos(data);
+      setEmpreendimentosData(data);
     }).catch((error) => {
       console.error('Erro ao carregar empreendimentos:', error);
     });
   }, [])
 
   const stats = useMemo(() => {
-    const all = empreendimentos.flatMap((e) => e.unidade_imobiliaria);
+    const all = empreendimentosData.flatMap((e) => e.unidade_imobiliaria);
     return {
-      total: empreendimentos.length,
+      total: empreendimentosData.length,
       unidades: all.length,
       vendidas: all.filter((u) => u.status === 'Vendido').length,
       abertas: all.filter((u) => u.status === 'Em aberto').length,
     };
-  }, []);
+  }, [empreendimentosData]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return empreendimentos.filter((e) => {
+    return empreendimentosData.filter((e) => {
       const matchSearch = e.nome.toLowerCase().includes(q)
         || e.cidade.toLowerCase().includes(q)
         || e.estado.toLowerCase().includes(q);
@@ -52,7 +54,7 @@ function Empreendimentos() {
         || e.unidade_imobiliaria.some((u) => u.tipo === tipoFiltro);
       return matchSearch && matchTipo;
     });
-  }, [search, tipoFiltro]);
+  }, [search, tipoFiltro, empreendimentosData]);
 
   const emp = selected ?? filtered[0];
 

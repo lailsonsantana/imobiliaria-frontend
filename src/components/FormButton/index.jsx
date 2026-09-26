@@ -1,5 +1,5 @@
 import { useState, useEffect, useId } from "react";
-import { Plus, X, Loader2, AlertCircle } from "lucide-react";
+import { Plus, X, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import "./style.css";
 
 /**
@@ -17,7 +17,7 @@ import "./style.css";
  *       {
  *         name: 'nome',                // chave no objeto de dados (obrigatório)
  *         label: 'Nome Completo',       // rótulo do campo
- *         type: 'text',                // text | number | email | date | select | textarea | checkbox | tel | password
+ *         type: 'text',                // text | number | email | date | select | textarea | checkbox | tel | password | array | list
  *         placeholder: 'Digite...',    // texto placeholder (opcional)
  *         defaultValue: '',            // valor inicial (opcional)
  *         required: true,              // se o campo é obrigatório (opcional)
@@ -27,6 +27,9 @@ import "./style.css";
  *         min, max, step: ...,         // restrições numéricas/datas (opcional)
  *         disabled: false,             // desabilita o campo (opcional)
  *         helperText: 'Info...',       // texto de ajuda abaixo do campo (opcional)
+ *         itemLabel: 'Telefone',       // rótulo do item para tipo array/list (opcional)
+ *         minItems: 1,                 // quantidade mínima de itens no array (opcional)
+ *         fields: [ ... ],             // sub-campos para tipo array/list
  *       }
  *     ]
  * - serviceFn / onSubmit: Função assíncrona ou de serviço chamada no envio do formulário:
@@ -80,15 +83,37 @@ function FormButton({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const createEmptyArrayItem = (subFields = []) => {
+    const item = {};
+    subFields.forEach((sf) => {
+      if (sf.defaultValue !== undefined) {
+        item[sf.name] = sf.defaultValue;
+      } else if (sf.type === "checkbox") {
+        item[sf.name] = false;
+      } else {
+        item[sf.name] = "";
+      }
+    });
+    return item;
+  };
+
   // Inicializa o estado do formulário com os valores padrão dos campos
   const initializeFormData = () => {
     const initial = {};
     formEntries.forEach((entry) => {
       if (entry.name) {
         if (entry.defaultValue !== undefined) {
-          initial[entry.name] = entry.defaultValue;
+          initial[entry.name] = Array.isArray(entry.defaultValue)
+            ? JSON.parse(JSON.stringify(entry.defaultValue))
+            : typeof entry.defaultValue === "object" && entry.defaultValue !== null
+            ? { ...entry.defaultValue }
+            : entry.defaultValue;
         } else if (entry.type === "checkbox") {
           initial[entry.name] = false;
+        } else if (entry.type === "array" || entry.type === "list") {
+          const subDefs = entry.fields || entry.subFields || entry.items || [];
+          const minCount = entry.minItems !== undefined ? entry.minItems : 1;
+          initial[entry.name] = Array.from({ length: minCount }, () => createEmptyArrayItem(subDefs));
         } else {
           initial[entry.name] = "";
         }
@@ -142,6 +167,46 @@ function FormButton({
       ...prev,
       [name]: finalValue,
     }));
+  };
+
+  const handleArrayItemChange = (arrayName, index, fieldName, value, fieldType) => {
+    let finalValue = fieldType === "checkbox" ? value : value;
+
+    if (fieldType === "number" && value !== "") {
+      finalValue = Number(value);
+    }
+
+    setFormData((prev) => {
+      const currentList = prev[arrayName] ? [...prev[arrayName]] : [];
+      const currentItem = { ...(currentList[index] || {}) };
+      currentItem[fieldName] = finalValue;
+      currentList[index] = currentItem;
+      return {
+        ...prev,
+        [arrayName]: currentList,
+      };
+    });
+  };
+
+  const handleAddArrayItem = (entry) => {
+    const subDefs = entry.fields || entry.subFields || entry.items || [];
+    const newItem = createEmptyArrayItem(subDefs);
+    setFormData((prev) => ({
+      ...prev,
+      [entry.name]: [...(prev[entry.name] || []), newItem],
+    }));
+  };
+
+  const handleRemoveArrayItem = (arrayName, index, minItems = 0) => {
+    setFormData((prev) => {
+      const currentList = prev[arrayName] ? [...prev[arrayName]] : [];
+      if (currentList.length <= minItems) return prev;
+      currentList.splice(index, 1);
+      return {
+        ...prev,
+        [arrayName]: currentList,
+      };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -249,10 +314,240 @@ function FormButton({
                   {formEntries.map((entry) => {
                     const fieldId = `${formId}-${entry.name}`;
                     const isCheckbox = entry.type === "checkbox";
+                    const isArrayType = entry.type === "array" || entry.type === "list";
                     const isFullWidth =
                       entry.fullWidth ||
                       entry.type === "textarea" ||
+                      isArrayType ||
                       entry.colSpan === 2;
+
+                    if (isArrayType) {
+                      const subDefs = entry.fields || entry.subFields || entry.items || [];
+                      const items = formData[entry.name] || [];
+                      const minItems = entry.minItems !== undefined ? entry.minItems : 0;
+                      const itemLabel = entry.itemLabel || "Item";
+
+                      return (
+                        <div
+                          key={entry.name}
+                          className="form-modal__field form-modal__field--full form-modal__array-container"
+                        >
+                          <div className="form-modal__array-header">
+                            <div>
+                              <span className="form-modal__array-title">
+                                {entry.label || entry.name}
+                              </span>
+                              {entry.required && (
+                                <span
+                                  className="form-modal__required"
+                                  title="Campo obrigatório"
+                                >
+                                  *
+                                </span>
+                              )}
+                              {entry.helperText && (
+                                <p className="form-modal__helper-text">
+                                  {entry.helperText}
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              className="form-modal__array-add-btn"
+                              onClick={() => handleAddArrayItem(entry)}
+                              disabled={isSubmitting}
+                            >
+                              <Plus size={14} />
+                              <span>Adicionar {itemLabel}</span>
+                            </button>
+                          </div>
+
+                          <div className="form-modal__array-list">
+                            {items.map((item, itemIdx) => {
+                              const canRemove = items.length > minItems;
+                              return (
+                                <div
+                                  key={`${entry.name}-${itemIdx}`}
+                                  className="form-modal__array-card"
+                                >
+                                  <div className="form-modal__array-card-header">
+                                    <span className="form-modal__array-card-title">
+                                      {itemLabel} #{itemIdx + 1}
+                                    </span>
+                                    {canRemove && (
+                                      <button
+                                        type="button"
+                                        className="form-modal__array-remove-btn"
+                                        onClick={() =>
+                                          handleRemoveArrayItem(
+                                            entry.name,
+                                            itemIdx,
+                                            minItems
+                                          )
+                                        }
+                                        disabled={isSubmitting}
+                                        title={`Remover ${itemLabel}`}
+                                      >
+                                        <Trash2 size={14} />
+                                        <span>Remover</span>
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  <div className="form-modal__grid form-modal__array-subgrid">
+                                    {subDefs.map((sf) => {
+                                      const subFieldId = `${fieldId}-${itemIdx}-${sf.name}`;
+                                      const sfFullWidth =
+                                        sf.fullWidth || sf.type === "textarea" || sf.colSpan === 2;
+                                      const sfCheckbox = sf.type === "checkbox";
+
+                                      return (
+                                        <div
+                                          key={sf.name}
+                                          className={`form-modal__field ${
+                                            sfFullWidth ? "form-modal__field--full" : ""
+                                          } ${sfCheckbox ? "form-modal__field--checkbox" : ""}`}
+                                        >
+                                          {!sfCheckbox && sf.label && (
+                                            <label
+                                              htmlFor={subFieldId}
+                                              className="form-modal__label"
+                                            >
+                                              {sf.label}
+                                              {sf.required && (
+                                                <span
+                                                  className="form-modal__required"
+                                                  title="Campo obrigatório"
+                                                >
+                                                  *
+                                                </span>
+                                              )}
+                                            </label>
+                                          )}
+
+                                          {sf.type === "select" ? (
+                                            <select
+                                              id={subFieldId}
+                                              value={item[sf.name] ?? ""}
+                                              onChange={(e) =>
+                                                handleArrayItemChange(
+                                                  entry.name,
+                                                  itemIdx,
+                                                  sf.name,
+                                                  e.target.value,
+                                                  sf.type
+                                                )
+                                              }
+                                              required={sf.required}
+                                              disabled={sf.disabled || isSubmitting}
+                                              className="form-modal__input form-modal__select"
+                                            >
+                                              {sf.placeholder && (
+                                                <option value="" disabled>
+                                                  {sf.placeholder}
+                                                </option>
+                                              )}
+                                              {sf.options?.map((opt) => {
+                                                const optVal =
+                                                  typeof opt === "object" ? opt.value : opt;
+                                                const optLabel =
+                                                  typeof opt === "object" ? opt.label : opt;
+                                                return (
+                                                  <option
+                                                    key={String(optVal)}
+                                                    value={optVal}
+                                                  >
+                                                    {optLabel}
+                                                  </option>
+                                                );
+                                              })}
+                                            </select>
+                                          ) : sf.type === "textarea" ? (
+                                            <textarea
+                                              id={subFieldId}
+                                              value={item[sf.name] ?? ""}
+                                              onChange={(e) =>
+                                                handleArrayItemChange(
+                                                  entry.name,
+                                                  itemIdx,
+                                                  sf.name,
+                                                  e.target.value,
+                                                  sf.type
+                                                )
+                                              }
+                                              placeholder={sf.placeholder}
+                                              required={sf.required}
+                                              rows={sf.rows || 2}
+                                              disabled={sf.disabled || isSubmitting}
+                                              className="form-modal__input form-modal__textarea"
+                                            />
+                                          ) : sfCheckbox ? (
+                                            <label
+                                              htmlFor={subFieldId}
+                                              className="form-modal__checkbox-label"
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                id={subFieldId}
+                                                checked={Boolean(item[sf.name])}
+                                                onChange={(e) =>
+                                                  handleArrayItemChange(
+                                                    entry.name,
+                                                    itemIdx,
+                                                    sf.name,
+                                                    e.target.checked,
+                                                    sf.type
+                                                  )
+                                                }
+                                                required={sf.required}
+                                                disabled={sf.disabled || isSubmitting}
+                                                className="form-modal__checkbox"
+                                              />
+                                              <span>{sf.label}</span>
+                                              {sf.required && (
+                                                <span className="form-modal__required">*</span>
+                                              )}
+                                            </label>
+                                          ) : (
+                                            <input
+                                              type={sf.type || "text"}
+                                              id={subFieldId}
+                                              value={item[sf.name] ?? ""}
+                                              onChange={(e) =>
+                                                handleArrayItemChange(
+                                                  entry.name,
+                                                  itemIdx,
+                                                  sf.name,
+                                                  e.target.value,
+                                                  sf.type
+                                                )
+                                              }
+                                              placeholder={sf.placeholder}
+                                              required={sf.required}
+                                              min={sf.min}
+                                              max={sf.max}
+                                              step={sf.step}
+                                              disabled={sf.disabled || isSubmitting}
+                                              className="form-modal__input"
+                                            />
+                                          )}
+
+                                          {sf.helperText && (
+                                            <span className="form-modal__helper-text">
+                                              {sf.helperText}
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    }
 
                     return (
                       <div
