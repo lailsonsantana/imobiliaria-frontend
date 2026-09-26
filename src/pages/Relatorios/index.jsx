@@ -232,8 +232,6 @@ function Relatorios() {
     return Object.values(map).sort((a, b) => b.vendidas - a.vendidas);
   }, [empreendimentos]);
 
-  const maxTipo = tipoVendas[0]?.vendidas || 1;
-
   // Stats gerais
   const totalVGV = vendas.reduce((s, v) => s + Number(v.valor_venda || 0), 0);
   const totalComissao = vendas.reduce(
@@ -402,22 +400,23 @@ function Relatorios() {
       <Card>
         <SectionTitle>Consulta 5 — Tipo de Unidade Mais Vendida</SectionTitle>
         <div className="rel-tipo-grid">
-          {tipoVendas.map((t) => (
-            <div key={t.tipo} className="rel-tipo-card">
-              <div className="rel-tipo-label">{t.tipo}</div>
-              <div className="rel-tipo-value">{t.vendidas}</div>
-              <div className="rel-tipo-sub">de {t.total} unidades</div>
-              <div className="rel-tipo-bar">
-                <div
-                  className="rel-tipo-bar-fill"
-                  style={{ width: `${Math.round((t.vendidas / maxTipo) * 100)}%` }}
-                />
+          {tipoVendas.map((t) => {
+            const pct = t.total ? Math.round((t.vendidas / t.total) * 100) : 0;
+            return (
+              <div key={t.tipo} className="rel-tipo-card">
+                <div className="rel-tipo-label">{t.tipo}</div>
+                <div className="rel-tipo-value">{t.vendidas}</div>
+                <div className="rel-tipo-sub">de {t.total} unidades</div>
+                <div className="rel-tipo-bar">
+                  <div
+                    className="rel-tipo-bar-fill"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <div className="rel-tipo-pct">{pct}% vendido</div>
               </div>
-              <div className="rel-tipo-pct">
-                {t.total ? Math.round((t.vendidas / t.total) * 100) : 0}% vendido
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {tipoVendas.length === 0 && (
             <div style={{ color: 'var(--color-text-sm)', padding: '12px 0' }}>
               Nenhuma unidade encontrada.
