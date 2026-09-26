@@ -7,12 +7,14 @@ import {
   Award,
   FileText,
   TrendingUp,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 import "./style.css";
 
 /**
- * Itens de navegação fixos da aplicação (6 páginas).
- * O item "Esquema NoSQL" foi removido conforme solicitado.
+ * Itens de navegação fixos da aplicação.
  */
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -25,15 +27,15 @@ const NAV_ITEMS = [
 ];
 
 /**
- * Menu lateral fixo, presente em todas as páginas.
- * A navegação usa o React Router (NavLink), que já cuida de marcar
- * o item ativo sozinho — por isso o Sidebar não recebe props.
+ * Menu lateral fixo com seletor de paleta (SelectBox) e alternador de modo Claro/Escuro (SlideBox).
  *
  * Props:
  * - className: classes adicionais (ex: "sidebar--open" em mobile)
  * - onNavClick: callback chamado ao clicar num link (fechar sidebar no mobile)
  */
 function Sidebar({ className = '', onNavClick }) {
+  const { colorScheme, setColorScheme, colorSchemes, mode, toggleMode } = useTheme();
+
   return (
     <aside className={`sidebar ${className}`.trim()}>
       <div className="sidebar__brand">
@@ -58,7 +60,70 @@ function Sidebar({ className = '', onNavClick }) {
         ))}
       </nav>
 
-      <div className="sidebar__footer">© 2026 Prosperiam</div>
+      {/* Seção de Tema (SelectBox) e Modo Claro/Escuro (SlideBox) */}
+      <div className="sidebar__theme-section">
+        <div className="sidebar__theme-header">
+          <span className="sidebar__theme-title">Tema & Modo</span>
+        </div>
+
+        {/* 1. SelectBox para Paletas: Gold, Purple, Blues */}
+        <div className="sidebar__theme-field">
+          <label htmlFor="theme-select" className="sidebar__field-label">
+            Paleta de Cores
+          </label>
+          <div className="sidebar__select-wrapper">
+            <select
+              id="theme-select"
+              value={colorScheme}
+              onChange={(e) => setColorScheme(e.target.value)}
+              className="sidebar__select"
+              aria-label="Selecionar paleta de cores (Gold, Purple, Blues)"
+            >
+              {colorSchemes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.label})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* 2. SlideBox para Alternar entre Dia (Light/White) e Noite (Dark) */}
+        <div className="sidebar__theme-field">
+          <div className="sidebar__mode-row">
+            <span className="sidebar__field-label">
+              {mode === "light" ? "Modo Claro" : "Modo Escuro"}
+            </span>
+            <button
+              type="button"
+              className={`sidebar__slidebox ${
+                mode === "dark" ? "sidebar__slidebox--dark" : "sidebar__slidebox--light"
+              }`}
+              onClick={toggleMode}
+              aria-label={`Alternar para ${
+                mode === "light" ? "modo escuro (noite)" : "modo claro (dia)"
+              }`}
+              title={`Alternar para modo ${mode === "light" ? "Escuro" : "Claro"}`}
+            >
+              <div className="sidebar__slidebox-track">
+                <span className="sidebar__slidebox-icon sidebar__slidebox-icon--sun">
+                  <Sun size={12} />
+                </span>
+                <span className="sidebar__slidebox-icon sidebar__slidebox-icon--moon">
+                  <Moon size={12} />
+                </span>
+                <div className="sidebar__slidebox-thumb">
+                  {mode === "light" ? <Sun size={11} /> : <Moon size={11} />}
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="sidebar__footer">
+        <span>© 2026 Prosperiam</span>
+      </div>
     </aside>
   );
 }
