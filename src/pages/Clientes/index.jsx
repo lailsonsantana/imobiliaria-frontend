@@ -8,8 +8,15 @@ import StatusBadge from '../../components/StatusBadge';
 import TableRow from '../../components/TableRow';
 import TableCell from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
+import { Pencil } from 'lucide-react';
 import FormButton from '../../components/FormButton';
-import { getClientes, createCliente, updateCliente,CLIENTE_FIELDS } from '../../services/client';
+import {
+  getClientes,
+  createCliente,
+  updateCliente,
+  CLIENTE_FIELDS,
+  clienteToFormValues,
+} from '../../services/client';
 // import { clientes } from '../../data/fallback';
 import './style.css';
 
@@ -107,6 +114,7 @@ function Clientes() {
                   <TableHeaderCell>Profissão</TableHeaderCell>
                   <TableHeaderCell>Estado Civil</TableHeaderCell>
                   <TableHeaderCell>Cidade</TableHeaderCell>
+                  <TableHeaderCell>Editar</TableHeaderCell>
                 </tr>
               </thead>
               <tbody>
@@ -128,6 +136,22 @@ function Clientes() {
                       <StatusBadge status={cli.estado_civil} />
                     </TableCell>
                     <TableCell>{cli.endereco?.[0]?.cidade}</TableCell>
+                    <TableCell>
+                      <FormButton
+                        entries={CLIENTE_FIELDS}
+                        icon={Pencil}
+                        iconOnly
+                        variant="outline"
+                        className="cli-edit-btn"
+                        aria-label={`Editar cliente ${cli.nome}`}
+                        modalTitle="Editar Cliente"
+                        modalSubtitle={cli.nome}
+                        submitText="Atualizar"
+                        initialValues={clienteToFormValues(cli)}
+                        serviceFn={(formData) => updateCliente(cli._id, formData)}
+                        onSuccess={() => carregarClientes()}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 && (

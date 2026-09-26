@@ -70,6 +70,12 @@
   .form-btn__label {
     line-height: 1;
   }
+
+  .form-btn--icon-only {
+    padding: 6px;
+    min-width: 32px;
+    min-height: 32px;
+  }
   
   /* =============================================
      Modal Backdrop & Container
