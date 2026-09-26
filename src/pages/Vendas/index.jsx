@@ -9,7 +9,8 @@ import StatusBadge     from '../../components/StatusBadge';
 import TableRow        from '../../components/TableRow';
 import TableCell       from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
-import { getVendas } from '../../services/vendas';
+import FormButton from '../../components/FormButton';
+import { getVendas, createVenda, VENDA_FIELDS } from '../../services/vendas';
 import { getEmpreendimentos } from '../../services/empreendimentos';
 import './style.css';
 
@@ -151,6 +152,17 @@ function Vendas() {
         {STATUS_OPTS.map((s) => (
           <FilterButton key={s} label={s} active={status === s} onClick={() => setStatus(s)} />
         ))}
+
+        <FormButton
+            name="Nova Venda"
+            entries={VENDA_FIELDS}
+            serviceFn={createVenda}
+            onSuccess={(data) => {
+            console.log('Sucesso!', data);
+            loadVendas();
+          }}/>
+
+        
       </div>
 
       <div className="vendas-layout">
@@ -192,6 +204,8 @@ function Vendas() {
                 )}
               </tbody>
             </table>
+
+            
           </div>
         </Card>
 
