@@ -15,6 +15,7 @@ export const UNIDADES_FIELDS = [
     name: "tipo",
     label: "Tipo",
     type: "select",
+    default:"casa",
     options: ["casa", "Apartamento", "Lote"],
   },
   { name: "area", label: "Área (m²)", type: "number" },
@@ -24,6 +25,7 @@ export const UNIDADES_FIELDS = [
     label: "Status",
     type: "select",
     options: ["Vendido", "Reservado", "Em aberto", "Distratado"],
+    defaultValue: "Vendido",
   },
 ];
 
