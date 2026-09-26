@@ -9,7 +9,7 @@ import TableRow from '../../components/TableRow';
 import TableCell from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
 import FormButton from '../../components/FormButton';
-import { getClientes, createCliente, CLIENTE_FIELDS } from '../../services/client';
+import { getClientes, createCliente, updateCliente,CLIENTE_FIELDS } from '../../services/client';
 // import { clientes } from '../../data/fallback';
 import './style.css';
 
@@ -102,7 +102,6 @@ function Clientes() {
             <table>
               <thead>
                 <tr>
-                  <TableHeaderCell>#</TableHeaderCell>
                   <TableHeaderCell>Nome</TableHeaderCell>
                   <TableHeaderCell>CPF</TableHeaderCell>
                   <TableHeaderCell>Profissão</TableHeaderCell>
@@ -113,7 +112,6 @@ function Clientes() {
               <tbody>
                 {filtered.map((cli) => (
                   <TableRow key={cli._id} highlighted={selected?._id === cli._id}>
-                    <TableCell mono>{cli._id}</TableCell>
                     <TableCell>
                       <button
                         className="cli-nome-btn"
