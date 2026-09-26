@@ -1,5 +1,48 @@
 import api from "./index";
 
+export const EMPREENDIMENTOS_FIELDS = [
+ {
+    name: "nome",
+    label: "Empreendimento",
+    type: "text",
+    placeholder: "Ex: Condomínio Jardim das Flores",
+    required: true,
+    fullWidth: true,
+  },
+  {
+    name: "bairro",
+    label: "Bairro",
+    type: "text",
+    placeholder: "Ex: Fábio Alves Santos",
+    required: true,
+    fullWidth: true,
+  },
+  {
+    name: "cidade",
+    label: "Cidade",
+    type: "text",
+    placeholder: "Ex: Fábio Alves Santos",
+    required: true,
+    fullWidth: true,
+  },
+  {
+    name: "estado",
+    label: "Estado",
+    type: "text",
+    placeholder: "Ex: Fábio Alves Santos",
+    required: true,
+    fullWidth: true,
+  },
+  {
+    name: "cep",
+    label: "CEP",
+    type: "text",
+    placeholder: "Ex: Fábio Alves Santos",
+    required: true,
+    fullWidth: true,
+  },
+];
+
 export const getEmpreendimentos = async () => {
   try {
     const response = await api.get("/empreendimentos");

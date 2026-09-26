@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, use } from 'react';
 import PageHeader from '../../components/PageHeader';
 import StatCard from '../../components/StatCard';
 import Card from '../../components/Card';
@@ -13,8 +13,9 @@ import FormButton from '../../components/FormButton';
 import { empreendimentos, fmt } from '../../data/fallback';
 import './style.css';
 
-import { getEmpreendimentos } from '../../services/empreendimentos';
+import { createEmpreendimento, getEmpreendimentos, EMPREENDIMENTOS_FIELDS } from '../../services/empreendimentos';
 import { getUnidadesImobiliarias } from '../../services/unidades';
+
 
 const TIPOS = ['Todos', 'casa', 'Apartamento', 'Lote'];
 
@@ -24,15 +25,19 @@ function Empreendimentos() {
   const [selected, setSelected] = useState(null);
 
   const [empreendimentosData, setEmpreendimentosData] = useState([]);
-  
-  useEffect(() => {
-   getEmpreendimentos().then((data) => {
-      console.log('Empreendimentos carregados:', data);
+
+  const carregarEmpreendimentos = () => {
+    getEmpreendimentos().then((data) => {
       setEmpreendimentosData(data);
     }).catch((error) => {
       console.error('Erro ao carregar empreendimentos:', error);
     });
-  }, [])
+  }
+
+
+  useEffect(() => {
+    carregarEmpreendimentos();
+  },[])
 
   const stats = useMemo(() => {
     const all = empreendimentosData.flatMap((e) => e.unidade_imobiliaria);
@@ -83,6 +88,14 @@ function Empreendimentos() {
             onClick={() => setTipoFiltro(t)}
           />
         ))}
+        <FormButton
+          name="Novo Empreendimento"
+          entries={EMPREENDIMENTOS_FIELDS}
+          serviceFn={createEmpreendimento}
+          onSuccess={(data) => {
+            carregarEmpreendimentos();
+          }}
+        />
       </div>
 
       <div className="emp-layout">
