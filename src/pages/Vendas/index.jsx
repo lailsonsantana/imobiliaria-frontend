@@ -10,8 +10,11 @@ import TableRow        from '../../components/TableRow';
 import TableCell       from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
 import FormButton from '../../components/FormButton';
-import { getVendas, createVenda, VENDA_FIELDS } from '../../services/vendas';
+import { getVendas, createVenda, buildVendaFields, buildVendaPayload } from '../../services/vendas';
 import { getEmpreendimentos } from '../../services/empreendimentos';
+import { getVendedores } from '../../services/vendedores';
+import { getUnidadesImobiliarias } from '../../services/unidades';
+import { getClientes } from '../../services/client';
 import './style.css';
 
 const STATUS_OPTS = ['Todos', 'Liquidado', 'Financiado', 'Distratado', 'Transferido'];
@@ -63,18 +66,33 @@ function Vendas() {
   const [search, setSearch] = useState('');
   const [vendas, setVendas] = useState([]);
   const [empreendimentos, setEmpreendimentos] = useState([]);
+  const [vendedores, setVendedores] = useState([]);
+  const [unidades, setUnidades] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [status, setStatus] = useState('Todos');
   const [selected, setSelected] = useState(null);
   const [erro, setErro] = useState('');
 
+  const loadVendas = async () => {
+    try {
+      const data = await getVendas();
+      setVendas(Array.isArray(data) ? data : []);
+    } catch {
+      setErro('Não foi possível carregar as vendas.');
+      setVendas([]);
+    }
+  };
+
   useEffect(() => {
-    async function loadVendas() {
+    async function loadVendedores() {
       try {
-        const data = await getVendas();
-        setVendas(Array.isArray(data) ? data : []);
+        const data = await getVendedores();
+        setVendedores(Array.isArray(data) ? data : []);
       } catch {
-        setErro('Não foi possível carregar as vendas.');
-        setVendas([]);
+        setErro((previous) => previous
+          ? `${previous} Não foi possível carregar os vendedores.`
+          : 'Não foi possível carregar os vendedores.');
+        setVendedores([]);
       }
     }
 
@@ -90,10 +108,42 @@ function Vendas() {
       }
     }
 
+    async function loadUnidades() {
+      try {
+        const data = await getUnidadesImobiliarias();
+        setUnidades(Array.isArray(data) ? data : []);
+      } catch {
+        setErro((previous) => previous
+          ? `${previous} Não foi possível carregar as unidades imobiliárias.`
+          : 'Não foi possível carregar as unidades imobiliárias.');
+        setUnidades([]);
+      }
+    }
+
+    async function loadClientes() {
+      try {
+        const response = await getClientes();
+        const data = Array.isArray(response) ? response : response?.data;
+        setClientes(Array.isArray(data) ? data : []);
+      } catch {
+        setErro((previous) => previous
+          ? `${previous} Não foi possível carregar os clientes.`
+          : 'Não foi possível carregar os clientes.');
+        setClientes([]);
+      }
+    }
+
     loadVendas();
+    loadVendedores();
     loadEmpreendimentos();
+    loadUnidades();
+    loadClientes();
   }, []);
 
+  const vendaFields = useMemo(
+    () => buildVendaFields({ vendedores, empreendimentos, unidades, clientes }),
+    [vendedores, empreendimentos, unidades, clientes],
+  );
   
   const stats = useMemo(() => {
     const byStatus = {};
@@ -155,8 +205,12 @@ function Vendas() {
 
         <FormButton
             name="Nova Venda"
-            entries={VENDA_FIELDS}
-            serviceFn={createVenda}
+            entries={vendaFields}
+            serviceFn={(formData) => createVenda(buildVendaPayload(formData, {
+              vendedores,
+              unidades,
+              clientes,
+            }))}
             onSuccess={(data) => {
             console.log('Sucesso!', data);
             loadVendas();

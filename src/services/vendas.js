@@ -29,17 +29,6 @@ export const VENDA_FIELDS = [
     placeholder: "Selecione a unidade",
     required: true,
   },
-  {
-    name: "valor_total",
-    label: "Valor Total da Unidade",
-    type: "number",
-    placeholder: "0,00",
-    min: 0,
-    step: 0.01,
-    required: true,
-    helperText: "Valor total cadastrado da unidade imobiliária",
-  },
-
   // ----- Dados gerais da venda -----
   {
     name: "data_venda",
@@ -82,8 +71,8 @@ export const VENDA_FIELDS = [
     name: "status",
     label: "Status",
     type: "select",
-    options: ["Em andamento", "Liquidado", "Cancelado", "Inadimplente"],
-    defaultValue: "Em andamento",
+    options: ["Liquidado", "Transferido", "Financiado", "Distratado"],
+    defaultValue: "Liquidado",
     required: true,
   },
 
@@ -113,17 +102,10 @@ export const VENDA_FIELDS = [
     fields: [
       {
         name: "cliente_id",
-        label: "CPF do Cliente",
-        type: "text",
-        placeholder: "000.000.000-00",
-        required: true,
-        helperText: "Formato: XXX.XXX.XXX-XX",
-      },
-      {
-        name: "nome",
-        label: "Nome Completo",
-        type: "text",
-        placeholder: "Ex: Ana Paula Ferreira",
+        label: "Cliente cadastrado",
+        type: "select",
+        options: [],
+        placeholder: "Selecione um cliente",
         required: true,
       },
       {
@@ -184,11 +166,167 @@ export const VENDA_FIELDS = [
   },
 ];
 
+const getReferenceId = (reference) => (
+  reference && typeof reference === "object"
+    ? reference._id ?? reference.id
+    : reference
+);
+
+const getUnitLabel = (unidade) => (
+  [
+    unidade.numero != null && `Unidade ${unidade.numero}`,
+    unidade.quadra && `Quadra ${unidade.quadra}`,
+    unidade.tipo,
+  ].filter(Boolean).join(" · ") || `Unidade ${getReferenceId(unidade)}`
+);
+
+export const buildVendaFields = ({
+  vendedores = [],
+  empreendimentos = [],
+  unidades = [],
+  clientes = [],
+} = {}) => VENDA_FIELDS.map((field) => {
+  if (field.name === "vendedor_id") {
+    return {
+      ...field,
+      options: vendedores.map((vendedor) => ({
+        label: vendedor.nome,
+        value: getReferenceId(vendedor),
+      })),
+    };
+  }
+
+  if (field.name === "empreendimento_id") {
+    return {
+      ...field,
+      options: empreendimentos.map((empreendimento) => ({
+        label: empreendimento.nome,
+        value: getReferenceId(empreendimento),
+      })),
+    };
+  }
+
+  if (field.name === "unidade_imobiliaria_id") {
+    return {
+      ...field,
+      options: unidades.map((unidade) => {
+        const empreendimento = empreendimentos.find((item) => (
+          String(getReferenceId(item))
+            === String(getReferenceId(unidade.empreendimento_id ?? unidade.empreendimento))
+        ));
+        const descricao = getUnitLabel(unidade);
+
+        return {
+          label: empreendimento
+            ? `${empreendimento.nome} — ${descricao}`
+            : descricao,
+          value: getReferenceId(unidade),
+        };
+      }),
+    };
+  }
+
+  if (field.name === "cliente") {
+    return {
+      ...field,
+      fields: field.fields.map((subField) => (
+        subField.name === "cliente_id"
+          ? {
+            ...subField,
+            options: clientes
+              .filter((cliente) => cliente.cpf && cliente.nome)
+              .map((cliente) => ({
+                label: `${cliente.nome} — ${cliente.cpf}`,
+                value: cliente.cpf,
+              })),
+          }
+          : subField
+      )),
+    };
+  }
+
+  return field;
+});
+
+const formatVendaDate = (value) => {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  const [year, month, day] = value.split("-");
+  return `${day}/${month}/${year}`;
+};
+
+export const buildVendaPayload = (
+  formData,
+  { vendedores = [], unidades = [], clientes = [] } = {},
+) => {
+  const {
+    vendedor_id,
+    empreendimento_id,
+    unidade_imobiliaria_id,
+    valor_total,
+    data_venda,
+    data_pagamento_entrada,
+    comissao_data_recebimento,
+    parcela,
+    ...venda
+  } = formData;
+  const vendedor = vendedores.find(
+    (item) => String(getReferenceId(item)) === String(vendedor_id),
+  );
+  const unidade = unidades.find(
+    (item) => String(getReferenceId(item)) === String(unidade_imobiliaria_id),
+  );
+  const empreendimentoDaUnidade = unidade
+    && getReferenceId(unidade.empreendimento_id ?? unidade.empreendimento);
+
+  if (
+    empreendimentoDaUnidade
+    && String(empreendimentoDaUnidade) !== String(empreendimento_id)
+  ) {
+    throw new Error("A unidade selecionada não pertence ao empreendimento escolhido.");
+  }
+
+  return {
+    ...venda,
+    vendedor: {
+      vendedor_id,
+      nome: vendedor?.nome,
+    },
+    unidade_imobiliaria: {
+      empreendimento_id,
+      unidade_imobiliaria_id,
+      valor_total: unidade?.valor_total ?? unidade?.valor ?? valor_total,
+    },
+    data_venda: formatVendaDate(data_venda),
+    data_pagamento_entrada: formatVendaDate(data_pagamento_entrada),
+    comissao_data_recebimento: formatVendaDate(comissao_data_recebimento),
+    cliente: Array.isArray(venda.cliente)
+      ? venda.cliente.map((item) => {
+        const cliente = clientes.find(
+          (record) => String(record.cpf) === String(item.cliente_id),
+        );
+        return {
+          ...item,
+          nome: cliente?.nome ?? item.nome ?? "",
+        };
+      })
+      : venda.cliente,
+    parcela: Array.isArray(parcela)
+      ? parcela.map((item) => ({
+        ...item,
+        data_vencimento: formatVendaDate(item.data_vencimento),
+        data_pagamento: formatVendaDate(item.data_pagamento),
+      }))
+      : parcela,
+  };
+};
+
 export const getVendas = async () => {
   try {
-    console.log("chamei" )
     const response = await api.get("/venda");
-    console.log("Vendas ------" , response.data)
+    console.log("Vendas :" , response.data)
     return response.data;
   } catch (error) {
     console.error("Erro ao buscar vendas:", error);
