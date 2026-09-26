@@ -72,3 +72,18 @@
 }
 
 .vend-close-btn:hover { background: var(--color-border); }
+
+.vend-edit-btn,
+.vend-delete-btn {
+  margin: 0 auto;
+}
+
+.vend-delete-btn {
+  color: var(--color-red);
+  border-color: var(--color-red-bg);
+}
+
+.vend-delete-btn:hover {
+  background: var(--color-red-bg);
+  border-color: var(--color-red);
+}

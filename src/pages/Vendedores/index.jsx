@@ -1,5 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { getVendedores } from '../../services/vendedores';
+import { 
+  getVendedores, 
+  updateVendedor, 
+  deleteVendedor,
+  createVendedor 
+} from '../../services/vendedores';
 import { getVendas } from '../../services/vendas'; 
 import PageHeader      from '../../components/PageHeader';
 import StatCard        from '../../components/StatCard';
@@ -10,11 +15,22 @@ import RankingRow      from '../../components/RankingRow';
 import TableRow        from '../../components/TableRow';
 import TableCell       from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
+import FormButton      from '../../components/FormButton';
+import CallbackButton  from '../../components/CallbackButton';
+import { Pencil, Trash } from 'lucide-react';
 import './style.css';
 
-// Formatador nativo para substituir o 'fmt' do fallback, e formatar a moeda
+// Formatador nativo para a moeda
 const formatCurrency = (value) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value ?? 0));
+
+// Estrutura do formulário de Vendedor
+const VENDEDOR_FIELDS = [
+  { name: "nome", label: "Nome Completo", type: "text", required: true, fullWidth: true },
+  { name: "cpf", label: "CPF", type: "text", placeholder: "000.000.000-00", required: true },
+  { name: "creci", label: "CRECI", type: "text", placeholder: "Ex: CR1234", required: true },
+  { name: "telefone", label: "Telefone", type: "tel", placeholder: "(11) 98765-4321", required: true }
+];
 
 function Vendedores() {
   const [search, setSearch] = useState('');
@@ -23,20 +39,21 @@ function Vendedores() {
   const [vendedores, setVendedores] = useState([]);
   const [vendas, setVendas] = useState([]); 
 
-  useEffect(() => {
-    // Busca Vendedores e Vendas reais da API
+  const carregarDados = () => {
     Promise.all([getVendedores(), getVendas()])
       .then(([dadosVendedores, dadosVendas]) => {
         setVendedores(Array.isArray(dadosVendedores) ? dadosVendedores : []);
         setVendas(Array.isArray(dadosVendas) ? dadosVendas : []);
       })
       .catch((erro) => console.error("Falha ao carregar API:", erro));
+  };
+
+  useEffect(() => {
+    carregarDados();
   }, []);
 
   const ranking = useMemo(() => {
     const list = vendedores.map((v) => {
-      
-      // Cruza os dados: encontra as vendas reais que pertencem a este vendedor
       const vendasDoVendedor = vendas.filter(venda => 
         String(venda.vendedor_id) === String(v._id) || 
         String(venda.vendedor?.vendedor_id) === String(v._id) ||
@@ -90,7 +107,6 @@ function Vendedores() {
       </div>
 
       <div className="cards-grid">
-        {/* Ranking */}
         <Card>
           <SectionTitle>Ranking por Volume de Vendas</SectionTitle>
           {filtered.map((v, i) => (
@@ -109,13 +125,19 @@ function Vendedores() {
           )}
         </Card>
 
-        {/* Tabela + detalhe */}
         <div className="vend-right">
           <div className="toolbar">
             <SearchBox
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar vendedor..."
+            />
+            {/* BOTÃO CRIAR VENDEDOR */}
+            <FormButton
+              name="Novo Vendedor"
+              entries={VENDEDOR_FIELDS}
+              serviceFn={createVendedor}
+              onSuccess={carregarDados}
             />
           </div>
 
@@ -129,6 +151,8 @@ function Vendedores() {
                     <TableHeaderCell align="right">Vendas</TableHeaderCell>
                     <TableHeaderCell align="right">VGV</TableHeaderCell>
                     <TableHeaderCell align="right">Comissão</TableHeaderCell>
+                    <TableHeaderCell>Editar</TableHeaderCell>
+                    <TableHeaderCell>Excluir</TableHeaderCell>
                   </tr>
                 </thead>
                 <tbody>
@@ -146,6 +170,45 @@ function Vendedores() {
                       <TableCell mono align="right">{vv.totalVendas}</TableCell>
                       <TableCell mono align="right">{formatCurrency(vv.totalValor)}</TableCell>
                       <TableCell mono align="right">{formatCurrency(vv.totalComissao)}</TableCell>
+                      
+                      {/* BOTÃO EDITAR */}
+                      <TableCell>
+                        <FormButton
+                          entries={VENDEDOR_FIELDS}
+                          icon={Pencil}
+                          iconOnly
+                          variant="outline"
+                          className="vend-edit-btn"
+                          aria-label={`Editar vendedor ${vv.nome}`}
+                          modalTitle="Editar Vendedor"
+                          submitText="Atualizar"
+                          initialValues={{ nome: vv.nome, cpf: vv.cpf, creci: vv.creci, telefone: vv.telefone }}
+                          serviceFn={(formData) => updateVendedor(vv._id, formData)}
+                          onSuccess={carregarDados}
+                        />
+                      </TableCell>
+
+                      {/* BOTÃO EXCLUIR */}
+                      <TableCell>
+                        <CallbackButton
+                          label="Excluir"
+                          icon={Trash}
+                          iconOnly
+                          variant="outline"
+                          className="vend-delete-btn"
+                          aria-label={`Excluir vendedor ${vv.nome}`}
+                          modalTitle="Excluir Vendedor"
+                          modalSubtitle={vv.nome}
+                          submitText="Excluir"
+                          serviceFn={deleteVendedor}
+                          params={vv._id}
+                          onSuccess={() => {
+                            if (selected?._id === vv._id) setSelected(null);
+                            carregarDados();
+                          }}
+                        />
+                      </TableCell>
+
                     </TableRow>
                   ))}
                 </tbody>
