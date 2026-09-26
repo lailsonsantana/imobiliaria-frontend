@@ -219,7 +219,7 @@ export const createVenda = async (vendas) => {
 export const updateVenda = async (id, vendas) => {
   try {
     const response = await api.put(
-      `/vendas/${id}`,
+      `/venda/${id}`,
       vendas,
     );
     return response.data;
