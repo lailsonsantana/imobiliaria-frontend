@@ -1,5 +1,45 @@
 import api from "./index";
 
+export const UNIDADES_FIELDS = [
+  {
+    name: "empreendimento_id",
+    label: "Empreendimento",
+    type: "select",
+    options: [],
+    required: true,
+    placeholder: "Selecione um empreendimento",
+  },
+  { name: "numero", label: "Número", type: "text" },
+  { name: "quadra", label: "Quadra", type: "text" },
+  {
+    name: "tipo",
+    label: "Tipo",
+    type: "select",
+    options: ["casa", "Apartamento", "Lote"],
+  },
+  { name: "area", label: "Área (m²)", type: "number" },
+  { name: "valor", label: "Valor (R$)", type: "number" },
+  {
+    name: "status",
+    label: "Status",
+    type: "select",
+    options: ["Vendido", "Reservado", "Em aberto", "Distratado"],
+  },
+];
+
+export const buildUnidadesFields = (empreendimentos = []) =>
+  UNIDADES_FIELDS.map((field) =>
+    field.name === "empreendimento_id"
+      ? {
+          ...field,
+          options: empreendimentos.map((e) => ({
+            label: e.nome,
+            value: e._id,
+          })),
+        }
+      : field,
+  );
+
 export const getUnidadesImobiliarias = async () => {
   try {
     const response = await api.get("/unidades");
@@ -32,10 +72,7 @@ export const createUnidadesImobiliaris = async (unidadeData) => {
 
 export const updateUnidadesImobiliaris = async (id, unidadeData) => {
   try {
-    const response = await api.put(
-      `/unidades/${id}`,
-      unidadeData,
-    );
+    const response = await api.put(`/unidades/${id}`, unidadeData);
     return response.data;
   } catch (error) {
     console.error(`Erro ao atualizar unidade com ID ${id}:`, error);

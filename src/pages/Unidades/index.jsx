@@ -9,9 +9,10 @@ import TableRow from '../../components/TableRow';
 import TableCell from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
 import { fmt } from '../../data/fallback';
-import { getUnidadesImobiliarias } from '../../services/unidades';
+import { getUnidadesImobiliarias, createUnidadesImobiliaris, buildUnidadesFields } from '../../services/unidades';
+import { getEmpreendimentos } from '../../services/empreendimentos';
 import './style.css';
-
+import FormButton from '../../components/FormButton';
 const STATUS_OPTS = ['Todos', 'Vendido', 'Reservado', 'Em aberto', 'Distratado'];
 const TIPO_OPTS = ['Todos', 'casa', 'Apartamento', 'Lote'];
 
@@ -21,12 +22,26 @@ function Unidades() {
   const [tipo, setTipo] = useState('Todos');
   const [empFiltro, setEmpFiltro] = useState('Todos');
   const [unidades, setUnidades] = useState([]);
+  const [empreendimentos, setEmpreendimentos] = useState([]);
 
-  useEffect(() => {
+  const carregarUnidades = () => {
     getUnidadesImobiliarias()
       .then(setUnidades)
       .catch((error) => console.error('Erro ao carregar unidades:', error));
+  };
+
+  useEffect(() => {
+    carregarUnidades();
+    getEmpreendimentos()
+      .then(setEmpreendimentos)
+      .catch((error) => console.error('Erro ao carregar empreendimentos:', error));
   }, []);
+
+  const unidadesFields = useMemo(
+    () => buildUnidadesFields(empreendimentos),
+    [empreendimentos]
+  );
+
 
   // nomes distintos de empreendimento, derivados direto das unidades já populadas
   const empOpts = useMemo(() => {
@@ -77,6 +92,14 @@ function Unidades() {
         {STATUS_OPTS.map((s) => (
           <FilterButton key={s} label={s} active={status === s} onClick={() => setStatus(s)} />
         ))}
+        <FormButton
+          name="Nova Unidade"
+          entries={unidadesFields}
+          serviceFn={createUnidadesImobiliaris}
+          onSuccess={(data) => {
+            carregarUnidades();
+          }}
+        ></FormButton>
       </div>
 
       <div className="toolbar" style={{ marginBottom: 20 }}>
