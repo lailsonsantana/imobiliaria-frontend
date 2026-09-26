@@ -16,7 +16,7 @@ import './style.css';
 import { getEmpreendimentos } from '../../services/empreendimentos';
 import { getUnidadesImobiliarias } from '../../services/unidades';
 
-const TIPOS = ['Todos', 'Casa', 'Apartamento', 'Lote'];
+const TIPOS = ['Todos', 'casa', 'Apartamento', 'Lote'];
 
 function Empreendimentos() {
   const [search, setSearch] = useState('');
@@ -26,11 +26,6 @@ function Empreendimentos() {
   const [empreendimentosData, setEmpreendimentosData] = useState([]);
   
   useEffect(() => {
-    getUnidadesImobiliarias().then((data) => {
-      console.log('Unidades carregadas:', data);
-    }).catch((error) => {
-      console.error('Erro ao carregar unidades:', error);
-    });
    getEmpreendimentos().then((data) => {
       console.log('Empreendimentos carregados:', data);
       setEmpreendimentosData(data);
@@ -40,18 +35,18 @@ function Empreendimentos() {
   }, [])
 
   const stats = useMemo(() => {
-    const all = empreendimentos.flatMap((e) => e.unidade_imobiliaria);
+    const all = empreendimentosData.flatMap((e) => e.unidade_imobiliaria);
     return {
-      total: empreendimentos.length,
+      total: empreendimentosData.length,
       unidades: all.length,
       vendidas: all.filter((u) => u.status === 'Vendido').length,
       abertas: all.filter((u) => u.status === 'Em aberto').length,
     };
-  }, []);
+  }, [empreendimentosData]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return empreendimentos.filter((e) => {
+    return empreendimentosData.filter((e) => {
       const matchSearch = e.nome.toLowerCase().includes(q)
         || e.cidade.toLowerCase().includes(q)
         || e.estado.toLowerCase().includes(q);
@@ -59,7 +54,7 @@ function Empreendimentos() {
         || e.unidade_imobiliaria.some((u) => u.tipo === tipoFiltro);
       return matchSearch && matchTipo;
     });
-  }, [search, tipoFiltro]);
+  }, [search, tipoFiltro, empreendimentosData]);
 
   const emp = selected ?? filtered[0];
 
