@@ -121,7 +121,7 @@ function Home() {
           <table>
             <thead>
               <tr>
-                <TableHeaderCell>#</TableHeaderCell>
+                <TableHeaderCell>ID:Venda</TableHeaderCell>
                 <TableHeaderCell>Cliente</TableHeaderCell>
                 <TableHeaderCell>Vendedor</TableHeaderCell>
                 <TableHeaderCell>Data</TableHeaderCell>
