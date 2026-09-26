@@ -297,3 +297,157 @@ export const excluirCliente = async (id) => {
 };
 
 export const deleteCliente = excluirCliente;
+
+/**
+ * Retorna os top N clientes com mais vendas associadas.
+ *
+ * @param {Array} clientes - Lista de clientes
+ * @param {Array} vendas - Lista de vendas
+ * @param {number} limit - Quantidade máxima de clientes a retornar (padrão: 3)
+ * @returns {Array} Lista ordenada dos top clientes com contagem e total
+ */
+export const getTopClientesPorVendas = (clientes = [], vendas = [], limit = 3) => {
+  const clientesList = Array.isArray(clientes?.data)
+    ? clientes.data
+    : Array.isArray(clientes)
+    ? clientes
+    : [];
+
+  const vendasList = Array.isArray(vendas?.data)
+    ? vendas.data
+    : Array.isArray(vendas)
+    ? vendas
+    : [];
+
+  if (clientesList.length === 0) return [];
+
+  const statsMap = new Map();
+
+  clientesList.forEach((cli) => {
+    const key = String(cli._id ?? cli.cpf ?? cli.nome);
+    statsMap.set(key, {
+      cliente: cli,
+      nome: cli.nome || "Cliente sem nome",
+      cpf: cli.cpf,
+      _id: cli._id,
+      totalVendas: 0,
+      totalValor: 0,
+    });
+  });
+
+  vendasList.forEach((v) => {
+    const valor = Number(v.valor_venda || 0);
+    const clientesNaVenda = Array.isArray(v.cliente)
+      ? v.cliente
+      : v.cliente
+      ? [v.cliente]
+      : [];
+
+    clientesNaVenda.forEach((cliVenda) => {
+      const cliRef =
+        typeof cliVenda === "object" && cliVenda !== null
+          ? cliVenda.cliente_id || cliVenda.cpf || cliVenda._id || cliVenda.id || cliVenda.nome
+          : cliVenda;
+      const cliNome =
+        typeof cliVenda === "object" && cliVenda !== null ? cliVenda.nome : undefined;
+
+      let matchedKey = null;
+      for (const [key, item] of statsMap.entries()) {
+        const c = item.cliente;
+        if (
+          (cliRef && (String(c._id) === String(cliRef) || String(c.cpf) === String(cliRef))) ||
+          (cliNome && c.nome && c.nome.toLowerCase() === String(cliNome).toLowerCase())
+        ) {
+          matchedKey = key;
+          break;
+        }
+      }
+
+      if (matchedKey) {
+        const item = statsMap.get(matchedKey);
+        item.totalVendas += 1;
+        item.totalValor += valor;
+      }
+    });
+  });
+
+  return Array.from(statsMap.values())
+    .filter((item) => item.totalVendas > 0)
+    .sort((a, b) => b.totalVendas - a.totalVendas || b.totalValor - a.totalValor)
+    .slice(0, limit);
+};
+
+/**
+ * Retorna a cidade com maior número de clientes cadastrados.
+ *
+ * @param {Array} clientes - Lista de clientes
+ * @returns {{ cidade: string, total: number, percentual: number, ranking: Array }} Dados da cidade destaque
+ */
+export const getCidadeComMaisClientes = (clientes = []) => {
+  const clientesList = Array.isArray(clientes?.data)
+    ? clientes.data
+    : Array.isArray(clientes)
+    ? clientes
+    : [];
+
+  if (clientesList.length === 0) {
+    return { cidade: "—", total: 0, percentual: 0, ranking: [] };
+  }
+
+  const cidadesCount = {};
+  let totalComCidade = 0;
+
+  clientesList.forEach((cli) => {
+    const enderecos = Array.isArray(cli.endereco)
+      ? cli.endereco
+      : cli.endereco
+      ? [cli.endereco]
+      : [];
+
+    const cidade = enderecos.find((e) => e?.cidade && String(e.cidade).trim())?.cidade;
+    if (cidade) {
+      const nomeCidade = String(cidade).trim();
+      cidadesCount[nomeCidade] = (cidadesCount[nomeCidade] || 0) + 1;
+      totalComCidade += 1;
+    }
+  });
+
+  const entries = Object.entries(cidadesCount);
+  if (entries.length === 0) {
+    return { cidade: "—", total: 0, percentual: 0, ranking: [] };
+  }
+
+  entries.sort((a, b) => b[1] - a[1]);
+  const [topCidade, count] = entries[0];
+  const percentual =
+    clientesList.length > 0 ? Math.round((count / clientesList.length) * 100) : 0;
+
+  return {
+    cidade: topCidade,
+    total: count,
+    percentual,
+    ranking: entries.map(([cidade, total]) => ({ cidade, total })),
+  };
+};
+
+/**
+ * Calcula todas as estatísticas consolidadas de clientes.
+ *
+ * @param {Array} clientes - Lista de clientes
+ * @param {Array} vendas - Lista de vendas
+ * @returns {{ total: number, topClientes: Array, topCidade: object }} Estatísticas consolidadas
+ */
+export const getClientesStats = (clientes = [], vendas = []) => {
+  const clientesList = Array.isArray(clientes?.data)
+    ? clientes.data
+    : Array.isArray(clientes)
+    ? clientes
+    : [];
+
+  return {
+    total: clientesList.length,
+    topClientes: getTopClientesPorVendas(clientesList, vendas, 3),
+    topCidade: getCidadeComMaisClientes(clientesList),
+  };
+};
+
