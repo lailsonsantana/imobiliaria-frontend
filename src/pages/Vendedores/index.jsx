@@ -1,4 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { 
+  getVendedores, 
+  updateVendedor, 
+  deleteVendedor,
+  createVendedor 
+} from '../../services/vendedores';
+import { getVendas } from '../../services/vendas'; 
 import PageHeader      from '../../components/PageHeader';
 import StatCard        from '../../components/StatCard';
 import Card            from '../../components/Card';
@@ -8,35 +15,81 @@ import RankingRow      from '../../components/RankingRow';
 import TableRow        from '../../components/TableRow';
 import TableCell       from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
-import { vendedores, fmt } from '../../data/fallback';
+import FormButton      from '../../components/FormButton';
+import CallbackButton  from '../../components/CallbackButton';
+import { Pencil, Trash } from 'lucide-react';
 import './style.css';
+
+// Formatador nativo para a moeda
+const formatCurrency = (value) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value ?? 0));
+
+// Estrutura do formulário de Vendedor
+const VENDEDOR_FIELDS = [
+  { name: "nome", label: "Nome Completo", type: "text", required: true, fullWidth: true },
+  { name: "cpf", label: "CPF", type: "text", placeholder: "000.000.000-00", required: true },
+  { name: "creci", label: "CRECI", type: "text", placeholder: "Ex: CR1234", required: true },
+  { name: "telefone", label: "Telefone", type: "tel", placeholder: "(11) 98765-4321", required: true }
+];
 
 function Vendedores() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
+  
+  const [vendedores, setVendedores] = useState([]);
+  const [vendas, setVendas] = useState([]); 
 
-  const ranking = useMemo(() => {
-    const list = vendedores.map((v) => ({
-      ...v,
-      totalVendas: v.vendas.length,
-      totalValor: v.vendas.reduce((s, vv) => s + vv.valor_venda, 0),
-      totalComissao: v.vendas.reduce((s, vv) => s + vv.comissao, 0),
-    })).sort((a, b) => b.totalValor - a.totalValor);
-    const max = list[0]?.totalValor || 1;
-    return list.map((v) => ({ ...v, pct: Math.round((v.totalValor / max) * 100) }));
+  const carregarDados = () => {
+    Promise.all([getVendedores(), getVendas()])
+      .then(([dadosVendedores, dadosVendas]) => {
+        setVendedores(Array.isArray(dadosVendedores) ? dadosVendedores : []);
+        setVendas(Array.isArray(dadosVendas) ? dadosVendas : []);
+      })
+      .catch((erro) => console.error("Falha ao carregar API:", erro));
+  };
+
+  useEffect(() => {
+    carregarDados();
   }, []);
 
+  const ranking = useMemo(() => {
+    const list = vendedores.map((v) => {
+      const vendasDoVendedor = vendas.filter(venda => 
+        String(venda.vendedor_id) === String(v._id) || 
+        String(venda.vendedor?.vendedor_id) === String(v._id) ||
+        String(venda.vendedor?._id) === String(v._id)
+      ).map(vv => ({
+        ...vv,
+        venda_id: vv._id,
+        comissao: Number(vv.comissao_vendedor || 0),
+        data_recebimento_comissao: vv.comissao_data_recebimento || '—',
+        valor_venda: Number(vv.valor_venda || 0)
+      }));
+
+      return {
+        ...v,
+        vendas: vendasDoVendedor,
+        totalVendas: vendasDoVendedor.length,
+        totalValor: vendasDoVendedor.reduce((s, vv) => s + vv.valor_venda, 0),
+        totalComissao: vendasDoVendedor.reduce((s, vv) => s + vv.comissao, 0),
+      };
+    }).sort((a, b) => b.totalValor - a.totalValor);
+    
+    const max = list[0]?.totalValor || 1;
+    return list.map((v) => ({ ...v, pct: Math.round((v.totalValor / max) * 100) }));
+  }, [vendedores, vendas]);
+
   const stats = useMemo(() => ({
-    total: vendedores.length,
-    totalVendas: vendedores.reduce((s, v) => s + v.vendas.length, 0),
-    totalVGV: vendedores.reduce((s, v) => s + v.vendas.reduce((ss, vv) => ss + vv.valor_venda, 0), 0),
-    totalComissao: vendedores.reduce((s, v) => s + v.vendas.reduce((ss, vv) => ss + vv.comissao, 0), 0),
-  }), []);
+    total: ranking.length,
+    totalVendas: ranking.reduce((s, v) => s + v.totalVendas, 0),
+    totalVGV: ranking.reduce((s, v) => s + v.totalValor, 0),
+    totalComissao: ranking.reduce((s, v) => s + v.totalComissao, 0),
+  }), [ranking]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return ranking.filter((v) =>
-      v.nome.toLowerCase().includes(q) || v.cpf.includes(q) || v.creci.toLowerCase().includes(q)
+      v.nome?.toLowerCase().includes(q) || v.cpf?.includes(q) || v.creci?.toLowerCase().includes(q)
     );
   }, [search, ranking]);
 
@@ -49,12 +102,11 @@ function Vendedores() {
       <div className="stats-grid">
         <StatCard label="Vendedores"     value={stats.total}                         color="accent" />
         <StatCard label="Total de Vendas" value={stats.totalVendas}                  color="blue" />
-        <StatCard label="VGV Total"      value={fmt.currency(stats.totalVGV)}         color="green" compact />
-        <StatCard label="Total Comissões" value={fmt.currency(stats.totalComissao)}   color="gold" compact />
+        <StatCard label="VGV Total"      value={formatCurrency(stats.totalVGV)}      color="green" compact />
+        <StatCard label="Total Comissões" value={formatCurrency(stats.totalComissao)} color="gold" compact />
       </div>
 
       <div className="cards-grid">
-        {/* Ranking */}
         <Card>
           <SectionTitle>Ranking por Volume de Vendas</SectionTitle>
           {filtered.map((v, i) => (
@@ -62,19 +114,30 @@ function Vendedores() {
               key={v._id}
               position={i + 1}
               name={v.nome}
-              value={fmt.currency(v.totalValor)}
+              value={formatCurrency(v.totalValor)}
               percentage={v.pct}
             />
           ))}
+          {filtered.length === 0 && (
+            <p style={{ fontSize: '13px', color: 'var(--color-text-sm)', padding: '10px 0' }}>
+              Nenhum vendedor encontrado.
+            </p>
+          )}
         </Card>
 
-        {/* Tabela + detalhe */}
         <div className="vend-right">
           <div className="toolbar">
             <SearchBox
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar vendedor..."
+            />
+            {/* BOTÃO CRIAR VENDEDOR */}
+            <FormButton
+              name="Novo Vendedor"
+              entries={VENDEDOR_FIELDS}
+              serviceFn={createVendedor}
+              onSuccess={carregarDados}
             />
           </div>
 
@@ -88,6 +151,8 @@ function Vendedores() {
                     <TableHeaderCell align="right">Vendas</TableHeaderCell>
                     <TableHeaderCell align="right">VGV</TableHeaderCell>
                     <TableHeaderCell align="right">Comissão</TableHeaderCell>
+                    <TableHeaderCell>Editar</TableHeaderCell>
+                    <TableHeaderCell>Excluir</TableHeaderCell>
                   </tr>
                 </thead>
                 <tbody>
@@ -103,8 +168,47 @@ function Vendedores() {
                       </TableCell>
                       <TableCell mono>{vv.creci}</TableCell>
                       <TableCell mono align="right">{vv.totalVendas}</TableCell>
-                      <TableCell mono align="right">{fmt.currency(vv.totalValor)}</TableCell>
-                      <TableCell mono align="right">{fmt.currency(vv.totalComissao)}</TableCell>
+                      <TableCell mono align="right">{formatCurrency(vv.totalValor)}</TableCell>
+                      <TableCell mono align="right">{formatCurrency(vv.totalComissao)}</TableCell>
+                      
+                      {/* BOTÃO EDITAR */}
+                      <TableCell>
+                        <FormButton
+                          entries={VENDEDOR_FIELDS}
+                          icon={Pencil}
+                          iconOnly
+                          variant="outline"
+                          className="vend-edit-btn"
+                          aria-label={`Editar vendedor ${vv.nome}`}
+                          modalTitle="Editar Vendedor"
+                          submitText="Atualizar"
+                          initialValues={{ nome: vv.nome, cpf: vv.cpf, creci: vv.creci, telefone: vv.telefone }}
+                          serviceFn={(formData) => updateVendedor(vv._id, formData)}
+                          onSuccess={carregarDados}
+                        />
+                      </TableCell>
+
+                      {/* BOTÃO EXCLUIR */}
+                      <TableCell>
+                        <CallbackButton
+                          label="Excluir"
+                          icon={Trash}
+                          iconOnly
+                          variant="outline"
+                          className="vend-delete-btn"
+                          aria-label={`Excluir vendedor ${vv.nome}`}
+                          modalTitle="Excluir Vendedor"
+                          modalSubtitle={vv.nome}
+                          submitText="Excluir"
+                          serviceFn={deleteVendedor}
+                          params={vv._id}
+                          onSuccess={() => {
+                            if (selected?._id === vv._id) setSelected(null);
+                            carregarDados();
+                          }}
+                        />
+                      </TableCell>
+
                     </TableRow>
                   ))}
                 </tbody>
@@ -135,15 +239,20 @@ function Vendedores() {
                     </tr>
                   </thead>
                   <tbody>
-                    {v.vendas.map((vv) => (
+                    {v.vendas?.map((vv) => (
                       <TableRow key={vv.venda_id}>
                         <TableCell mono>{vv.venda_id}</TableCell>
                         <TableCell mono>{vv.data_venda}</TableCell>
-                        <TableCell mono align="right">{fmt.currency(vv.valor_venda)}</TableCell>
-                        <TableCell mono align="right">{fmt.currency(vv.comissao)}</TableCell>
+                        <TableCell mono align="right">{formatCurrency(vv.valor_venda)}</TableCell>
+                        <TableCell mono align="right">{formatCurrency(vv.comissao)}</TableCell>
                         <TableCell mono>{vv.data_recebimento_comissao}</TableCell>
                       </TableRow>
                     ))}
+                    {(!v.vendas || v.vendas.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={5}>Nenhuma venda registrada para este vendedor.</TableCell>
+                      </TableRow>
+                    )}
                   </tbody>
                 </table>
               </div>

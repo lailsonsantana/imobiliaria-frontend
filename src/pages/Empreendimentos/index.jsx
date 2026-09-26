@@ -13,9 +13,9 @@ import FormButton from '../../components/FormButton';
 import { empreendimentos, fmt } from '../../data/fallback';
 import './style.css';
 
-import { createEmpreendimento, getEmpreendimentos, EMPREENDIMENTOS_FIELDS } from '../../services/empreendimentos';
+import {updateEmpreendimento, createEmpreendimento, getEmpreendimentos, EMPREENDIMENTOS_FIELDS, empreendimentoToFormValues } from '../../services/empreendimentos';
 import { getUnidadesImobiliarias } from '../../services/unidades';
-
+import { Pencil } from 'lucide-react';
 
 const TIPOS = ['Todos', 'casa', 'Apartamento', 'Lote'];
 
@@ -128,6 +128,22 @@ function Empreendimentos() {
                     <TableCell>{e.cidade}</TableCell>
                     <TableCell>{e.estado}</TableCell>
                     <TableCell mono align="right">{e.unidade_imobiliaria.length}</TableCell>
+                    <TableCell>
+                      <FormButton
+                        entries={EMPREENDIMENTOS_FIELDS}
+                        icon={Pencil}
+                        iconOnly
+                        variant="outline"
+                        className="cli-edit-btn"
+                        aria-label={`Editar empreendimento ${e.nome}`}
+                        modalTitle="Editar Empreendimento"
+                        modalSubtitle={e.nome}
+                        submitText="Atualizar"
+                        initialValues={empreendimentoToFormValues(e)}
+                        serviceFn={(formData) => updateEmpreendimento(e._id, formData)}
+                        onSuccess={() => carregarEmpreendimentos()}
+                      />
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 && (
