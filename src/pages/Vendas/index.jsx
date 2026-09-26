@@ -10,6 +10,7 @@ import TableRow        from '../../components/TableRow';
 import TableCell       from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
 import { getVendas } from '../../services/vendas';
+import { getEmpreendimentos } from '../../services/empreendimentos';
 import './style.css';
 
 const STATUS_OPTS = ['Todos', 'Liquidado', 'Financiado', 'Distratado', 'Transferido'];
@@ -17,22 +18,55 @@ const STATUS_OPTS = ['Todos', 'Liquidado', 'Financiado', 'Distratado', 'Transfer
 const formatCurrency = (value) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value ?? 0));
 
-const getEmpreendimentoDescricao = (venda) => {
-  const unidade = venda?.unidade_imobiliaria ?? {};
+const getReferenceId = (reference) => (
+  reference && typeof reference === 'object'
+    ? reference._id ?? reference.id
+    : reference
+);
 
-  if (unidade.empreendimento_nome) return unidade.empreendimento_nome;
-  if (unidade.empreendimento_id) return `Empreendimento #${unidade.empreendimento_id}`;
-  return '—';
+const getEmpreendimentoDescricao = (venda, empreendimentos) => {
+  const unidade = venda?.unidade_imobiliaria ?? {};
+  const empreendimentoId = getReferenceId(unidade.empreendimento_id ?? unidade.empreendimento);
+  const empreendimento = empreendimentos.find((item) =>
+    String(item._id ?? item.id) === String(empreendimentoId),
+  );
+
+  return empreendimento?.nome
+    ?? unidade.empreendimento_nome
+    ?? unidade.empreendimento?.nome
+    ?? '—';
+};
+
+const getUnidadeDescricao = (venda, empreendimentos) => {
+  const unidade = venda?.unidade_imobiliaria ?? {};
+  const empreendimentoId = getReferenceId(unidade.empreendimento_id ?? unidade.empreendimento);
+  const empreendimento = empreendimentos.find((item) =>
+    String(item._id ?? item.id) === String(empreendimentoId),
+  );
+  const unidadeId = getReferenceId(unidade.unidade_imobiliaria_id ?? unidade);
+  const unidadesEmpreendimento = empreendimento?.unidade_imobiliaria
+    ?? empreendimento?.unidades
+    ?? [];
+  const unidadeConhecida = unidadesEmpreendimento.find((item) =>
+    String(item._id ?? item.id ?? item.unidade_imobiliaria_id) === String(unidadeId),
+  );
+  const numero = unidade.numero ?? unidadeConhecida?.numero;
+  const quadra = unidade.quadra ?? unidadeConhecida?.quadra;
+  const tipo = unidade.tipo ?? unidadeConhecida?.tipo;
+
+  if (numero == null) return '—';
+  return [`Unidade ${numero}`, quadra && `Quadra ${quadra}`, tipo].filter(Boolean).join(' · ');
 };
 
 function Vendas() {
   const [search, setSearch] = useState('');
   const [vendas, setVendas] = useState([]);
+  const [empreendimentos, setEmpreendimentos] = useState([]);
   const [status, setStatus] = useState('Todos');
   const [selected, setSelected] = useState(null);
   const [erro, setErro] = useState('');
 
-   useEffect(() => {
+  useEffect(() => {
     async function loadVendas() {
       try {
         const data = await getVendas();
@@ -43,7 +77,20 @@ function Vendas() {
       }
     }
 
+    async function loadEmpreendimentos() {
+      try {
+        const data = await getEmpreendimentos();
+        setEmpreendimentos(Array.isArray(data) ? data : []);
+      } catch {
+        setErro((previous) => previous
+          ? `${previous} Não foi possível carregar os empreendimentos e unidades.`
+          : 'Não foi possível carregar os empreendimentos e unidades.');
+        setEmpreendimentos([]);
+      }
+    }
+
     loadVendas();
+    loadEmpreendimentos();
   }, []);
 
   
@@ -76,6 +123,7 @@ function Vendas() {
   }, [vendas, search, status]);
 
   const v = selected;
+  const mostrarDetalhes = Boolean(v);
 
   return (
     <div className="page">
@@ -111,7 +159,6 @@ function Vendas() {
             <table>
               <thead>
                 <tr>
-                  <TableHeaderCell>#</TableHeaderCell>
                   <TableHeaderCell>Cliente</TableHeaderCell>
                   <TableHeaderCell>Vendedor</TableHeaderCell>
                   <TableHeaderCell>Data Venda</TableHeaderCell>
@@ -124,16 +171,15 @@ function Vendas() {
               <tbody>
                 {filtered.map((vv) => (
                   <TableRow key={vv._id} highlighted={selected?._id === vv._id}>
-                    <TableCell mono>{vv._id}</TableCell>
                     <TableCell>
                       <button
                         className="venda-btn"
                         onClick={() => setSelected((p) => p?._id === vv._id ? null : vv)}
                       >
-                        {vv.cliente[0]?.nome ?? '—'}
+                        {vv.cliente?.[0]?.nome ?? '—'}
                       </button>
                     </TableCell>
-                    <TableCell>{vv.vendedor.nome}</TableCell>
+                    <TableCell>{vv.vendedor?.nome ?? '—'}</TableCell>
                     <TableCell mono>{vv.data_venda}</TableCell>
                     <TableCell mono align="right">{formatCurrency(vv.valor_venda)}</TableCell>
                     <TableCell mono align="right">{formatCurrency(vv.valor_entrada)}</TableCell>
@@ -149,44 +195,65 @@ function Vendas() {
           </div>
         </Card>
 
-        {v && (
+        {mostrarDetalhes && (
           <Card className="venda-detail">
-            <div className="venda-detail-title">
-              Venda #{v._id} — <StatusBadge status={v.status} />
+            <div className="venda-detail-header">
+              <div>
+                <span className="venda-detail-eyebrow">Detalhes da venda</span>
+                <h2 className="venda-detail-title">
+                  {v.cliente?.map((cliente) => cliente.nome).filter(Boolean).join(' e ') || 'Cliente não informado'}
+                </h2>
+                <p className="venda-detail-subtitle">
+                  {v.vendedor?.nome ?? 'Vendedor não informado'}
+                  {v.data_venda ? ` · Venda em ${v.data_venda}` : ''}
+                </p>
+              </div>
+              <div className="venda-detail-actions">
+                <StatusBadge status={v.status} />
+                <button className="venda-close-btn" onClick={() => setSelected(null)}>Fechar</button>
+              </div>
             </div>
 
             <div className="venda-dl-grid">
-              <dl className="venda-dl">
+              <section className="venda-info-section">
                 <SectionTitle>Partes</SectionTitle>
-                <dt>Vendedor</dt>  <dd>{v.vendedor.nome}</dd>
-                <dt>Clientes</dt>
-                <dd>
-                  {v.cliente.map((c) => (
-                    <div key={c.cliente_id}>
-                      {c.nome}
-                      {c.responsavel_financeiro && <span className="resp-tag">resp. financeiro</span>}
-                    </div>
-                  ))}
-                </dd>
-              </dl>
+                <dl className="venda-dl">
+                  <dt>Vendedor</dt>
+                  <dd>{v.vendedor?.nome ?? '—'}</dd>
+                  <dt>Clientes</dt>
+                  <dd className="venda-clientes">
+                    {v.cliente?.length
+                      ? v.cliente.map((cliente, index) => (
+                        <div className="venda-cliente" key={cliente.cliente_id ?? cliente.nome ?? index}>
+                          <span>{cliente.nome ?? 'Cliente não informado'}</span>
+                          {cliente.responsavel_financeiro && <span className="resp-tag">resp. financeiro</span>}
+                        </div>
+                      ))
+                      : '—'}
+                  </dd>
+                </dl>
+              </section>
 
-              <dl className="venda-dl">
+              <section className="venda-info-section">
                 <SectionTitle>Financeiro</SectionTitle>
-                <dt>Valor Total</dt>    <dd>{formatCurrency(v.valor_venda)}</dd>
-                <dt>Entrada</dt>        <dd>{formatCurrency(v.valor_entrada)}</dd>
-                <dt>Parcelas</dt>       <dd>{v.quantidade_parcelas || '0 (à vista)'}</dd>
-                <dt>Comissão</dt>       <dd>{formatCurrency(v.comissao_vendedor)}</dd>
-                <dt>Data Venda</dt>     <dd>{v.data_venda}</dd>
-                <dt>Data Entrada</dt>   <dd>{v.data_pagamento_entrada}</dd>
-                <dt>Rec. Comissão</dt>  <dd>{v.comissao_data_recebimento}</dd>
-              </dl>
+                <dl className="venda-dl">
+                  <dt>Valor da venda</dt><dd>{formatCurrency(v.valor_venda)}</dd>
+                  <dt>Entrada</dt><dd>{formatCurrency(v.valor_entrada)}</dd>
+                  <dt>Parcelas</dt><dd>{v.quantidade_parcelas || '0 (à vista)'}</dd>
+                  <dt>Comissão</dt><dd>{formatCurrency(v.comissao_vendedor)}</dd>
+                  <dt>Pagamento da entrada</dt><dd>{v.data_pagamento_entrada || '—'}</dd>
+                  <dt>Recebimento comissão</dt><dd>{v.comissao_data_recebimento || '—'}</dd>
+                </dl>
+              </section>
 
-              <dl className="venda-dl">
-                <SectionTitle>Unidade</SectionTitle>
-                <dt>Empreendimento</dt> <dd>{getEmpreendimentoDescricao(v)}</dd>
-                <dt>Unidade ID</dt>     <dd>#{v.unidade_imobiliaria?.unidade_imobiliaria_id ?? '—'}</dd>
-                <dt>Valor Total</dt>    <dd>{formatCurrency(v.unidade_imobiliaria?.valor_total)}</dd>
-              </dl>
+              <section className="venda-info-section">
+                <SectionTitle>Imóvel</SectionTitle>
+                <dl className="venda-dl">
+                  <dt>Empreendimento</dt><dd>{getEmpreendimentoDescricao(v, empreendimentos)}</dd>
+                  <dt>Unidade</dt><dd>{getUnidadeDescricao(v, empreendimentos)}</dd>
+                  <dt>Valor do imóvel</dt><dd>{formatCurrency(v.unidade_imobiliaria?.valor_total)}</dd>
+                </dl>
+              </section>
             </div>
 
             {Array.isArray(v.parcela) && v.parcela.length > 0 && (
@@ -196,7 +263,6 @@ function Vendas() {
                   <table>
                     <thead>
                       <tr>
-                        <TableHeaderCell>#</TableHeaderCell>
                         <TableHeaderCell>Vencimento</TableHeaderCell>
                         <TableHeaderCell>Pagamento</TableHeaderCell>
                         <TableHeaderCell align="right">Valor</TableHeaderCell>
@@ -207,7 +273,6 @@ function Vendas() {
                     <tbody>
                       {v.parcela.map((p) => (
                         <TableRow key={p._id}>
-                          <TableCell mono>{p._id}</TableCell>
                           <TableCell mono>{p.data_vencimento}</TableCell>
                           <TableCell mono>{p.data_pagamento}</TableCell>
                           <TableCell mono align="right">{formatCurrency(p.valor_parcela)}</TableCell>
@@ -221,7 +286,6 @@ function Vendas() {
               </>
             )}
 
-            <button className="venda-close-btn" onClick={() => setSelected(null)}>Fechar</button>
           </Card>
         )}
       </div>
