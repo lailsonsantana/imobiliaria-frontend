@@ -9,12 +9,8 @@ import StatusBadge from '../../components/StatusBadge';
 import TableRow from '../../components/TableRow';
 import TableCell from '../../components/TableCell';
 import TableHeaderCell from '../../components/TableHeaderCell';
-<<<<<<< HEAD
-import {  fmt } from '../../data/fallback';
-=======
 import FormButton from '../../components/FormButton';
 import { empreendimentos, fmt } from '../../data/fallback';
->>>>>>> component/feat-filter-button
 import './style.css';
 
 import { getEmpreendimentos } from '../../services/empreendimentos';
